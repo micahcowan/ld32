@@ -10,8 +10,9 @@ var AntiCon = new (function() {
         var cvs = AC.canvas = document.getElementById('anticonCvs');
         var scr = AC.screen = cvs.getContext("2d");
         scr.fillStyle = 'black';
+        scr.textAlign = 'center';
         scr.font = '24px Arial, Helvetica, sans-serif';
-        scr.fillText("Click here to begin!", 50, 100);
+        scr.fillText("Click here to begin!", ACK.WIDTH / 2, ACK.HEIGHT / 2);
 
         // Listen for clickies.
         cvs.addEventListener('mouseup', AC.start);
@@ -60,7 +61,8 @@ var AntiCon = new (function() {
             // simple line, for now
             scr.moveTo(st.playerPos.x, st.playerPos.y)
             scr.lineTo(st.weaponPos.x, st.weaponPos.y);
-            scr.strokeStyle = '1.5px black';
+            scr.lineWidth = 1.5;
+            scr.strokeStyle = 'black';
             scr.stroke();
 
             // Draw weapon
@@ -68,7 +70,8 @@ var AntiCon = new (function() {
             scr.arc(st.weaponPos.x, st.weaponPos.y, ACK.WEAPON_RADIUS, 0, 2 * Math.PI);
             scr.fillStyle = 'red';
             scr.fill();
-            scr.strokeStyle = '1.5px black';
+            scr.lineWidth = 1.5;
+            scr.strokeStyle = 'black';
             scr.stroke();
 
             // Draw player
@@ -76,7 +79,8 @@ var AntiCon = new (function() {
             scr.arc(st.playerPos.x, st.playerPos.y, ACK.PLAYER_RADIUS, 0, 2 * Math.PI);
             scr.fillStyle = 'green';
             scr.fill();
-            scr.strokeStyle = '2px black';
+            scr.lineWidth = 2;
+            scr.strokeStyle = 'black';
             scr.stroke();
         };
 
@@ -318,6 +322,11 @@ var AntiCon = new (function() {
             if (this.position.y > ACK.HEIGHT + this.height/2) {
                 this.isDead = true;
             }
+            else if (this.killed) {
+                this.killed -= delta;
+                if (this.killed <= 0)
+                    this.isDead = true;
+            }
             else if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
                 // Check collision
                 // FIXME: just checking weapon point, should check full
@@ -332,19 +341,32 @@ var AntiCon = new (function() {
                 };
                 if (wp.x >= rect.l && wp.x <= rect.r
                         && wp.y >= rect.t && wp.y <= rect.b) {
-                    this.isDead = true;
+                    this.killed = ACK.SCORE_LINGER;
                 }
             }
         };
         this.draw = function(scr) {
             scr.save();
             scr.translate(this.position.x, this.position.y);
-            scr.fillStyle = 'blue';
-            scr.fillRect.apply(scr, this.rect);
-            scr.strokeStyle = '1.5px black';
-            scr.strokeRect.apply(scr, this.rect);
+            if (this.killed) {
+                scr.textAlign = 'center';
+                scr.font = '14px Arial, Helvetica, sans-serif';
+                scr.strokeStyle = 'WhiteSmoke';
+                scr.lineWidth = 8;
+                scr.strokeText(this.points, 0, 0);
+                scr.fillStyle = 'black';
+                scr.fillText(this.points, 0, 0);
+            }
+            else {
+                scr.fillStyle = 'blue';
+                scr.fillRect.apply(scr, this.rect);
+                scr.lineWidth = 1.5;
+                scr.strokeStyle = 'black';
+                scr.strokeRect.apply(scr, this.rect);
+            }
             scr.restore();
         }
+        this.points = 100;
         this.position = new P(0,0);
         this.velocity = new V(0,0);
         this.width = 40;
@@ -373,6 +395,8 @@ var AntiCon = new (function() {
         K.MAX_WEAPON_MOMENTUM = 800; // pixels per second.
         K.WEAPON_FRICTION = 27; // pixels per second^2.
         K.MIN_WEAPON_SPEED = 400;
+
+        K.SCORE_LINGER = 1000;
     })();
     var ACK = AC.defs;
 })();
