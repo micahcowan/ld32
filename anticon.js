@@ -19,19 +19,19 @@ var AntiCon = new (function() {
         window.addEventListener('touchup', AC.start);
     };
 
-    AC.start = function() {
+    AC.start = function(ev) {
         window.removeEventListener('mouseup', AC.start);
         window.removeEventListener('click', AC.start);
         window.removeEventListener('touchup', AC.start);
-        AC.game = new AC.Game();
+        AC.game = new AC.Game(ev);
     };
 
-    AC.Game = function() {
+    AC.Game = function(ev) {
         var ACG = this;
         AC.screen.clearRect(0, 0, ACK.WIDTH, ACK.HEIGHT);
         AC.screen.fillText("Congratulations!", 50, 100);
 
-        ACG.state = new AC.GameState();
+        ACG.state = new AC.GameState(ev);
 
         // Function, not a method. Called via timeout.
         ACG.update = function() {
@@ -153,15 +153,24 @@ var AntiCon = new (function() {
         ACG.tmout = window.setTimeout(ACG.update, ACK.MSECS_PER_FRAME);
     };
 
-    AC.GameState = function() {
+    AC.GameState = function(ev) {
         var S = this;
 
         S.lastFrameTime = new Date();
         S.gameElapsed = 0;
 
-        S.mousePos  = ACK.PLAYER_START;
-        S.playerPos = ACK.PLAYER_START;
-        S.weaponPos = ACK.WEAPON_START;
+        var startPos = ACK.PLAYER_START;
+        if ('touches' in ev) {
+            startPos = new AC.Point(ev.touches[0].clientX,
+                                    ev.touches[0].clientY);
+        }
+        else if ('clientX' in ev) {
+            startPos = new AC.Point(ev.clientX, ev.clientY);
+        }
+
+        S.mousePos  = startPos;
+        S.playerPos = startPos;
+        S.weaponPos = AC.Point.move(startPos, ACK.WEAPON_OFFSET);
         S.weaponMomentum = new AC.Vector(0, 0);
     };
 
@@ -248,7 +257,7 @@ var AntiCon = new (function() {
         K.WEAPON_RADIUS = 12;
 
         K.PLAYER_START = new AC.Point(K.WIDTH/2, K.HEIGHT/2);
-        K.WEAPON_START = AC.Vector.move(K.PLAYER_START, -50, 70);
+        K.WEAPON_OFFSET = new AC.Vector(-50, 70);
 
         K.TETHER_LENGTH = 100;
         K.TETHER_STRETCH = 0.85; // fraction of tether length
