@@ -306,12 +306,16 @@ var AntiCon = new (function() {
         this.position = _pos;
         this.velocity = _vel;
         this.isDead = false;
+
+        if (_pos.y == 0) {
+            this.position = P.move(_pos, 0, - this.height/2);
+        }
     };
     AC.Enemy.prototype = new (function() {
         this.update = function(state, delta) {
             var frameVel = V.scaleBy(this.velocity, delta / 1000);
             this.position = P.move(this.position, frameVel);
-            if (this.position.y > ACK.HEIGHT)
+            if (this.position.y > ACK.HEIGHT + this.height/2)
                 this.isDead = true;
         };
         this.draw = function(scr) {
@@ -323,7 +327,9 @@ var AntiCon = new (function() {
             scr.strokeRect.apply(scr, this.rect);
             scr.restore();
         }
-        this.rect = [-20, -30, 40, 60];
+        this.width = 40;
+        this.height = 60;
+        this.rect = [- this.width/2, - this.height/2, this.width, this.height];
     })();
 
     AC.defs = new (function() {
