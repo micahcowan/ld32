@@ -151,6 +151,9 @@ var AntiCon = new (function() {
             x -= AC.canvas.offsetLeft;
             y -= AC.canvas.offsetTop;
             ACG.state.mousePos = new AC.Point(x, y);
+
+            ev.stopPropagation();
+            ev.preventDefault();
         };
 
         AC.canvas.addEventListener('mousemove', ACG.handleMouseMove);
@@ -175,8 +178,6 @@ var AntiCon = new (function() {
         else if ('clientX' in ev) {
             startPos = new AC.Point(ev.clientX - oL, ev.clientY - oT);
         }
-        ev.stopPropagation();
-        ev.preventDefault();
 
         S.mousePos  = startPos;
         S.playerPos = startPos;
