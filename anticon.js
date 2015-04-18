@@ -74,7 +74,7 @@ var AntiCon = new (function() {
             }
 
             // Enforce the tether, and translate that into new momentum.
-            var distVec = AC.Point.diff(st.playerPos, st.weaponPos);
+            var distVec = AC.Point.diff(st.playerPos, weaponPos);
             if (distVec.length > ACK.TETHER_LENGTH) {
                 distVec = AC.Vector.scaleTo(
                     distVec
@@ -91,6 +91,7 @@ var AntiCon = new (function() {
                     );
                 }
             }
+
             // Save the new values back into state object.
             st.weaponPos = weaponPos;
             st.weaponMomentum = weaponMomentum;
@@ -111,20 +112,20 @@ var AntiCon = new (function() {
             scr.strokeStyle = '1.5px black';
             scr.stroke();
 
-            // Draw player
-            scr.beginPath();
-            scr.arc(st.playerPos.x, st.playerPos.y, ACK.PLAYER_RADIUS, 0, 2 * Math.PI);
-            scr.fillStyle = 'green';
-            scr.fill();
-            scr.strokeStyle = '2px black';
-            scr.stroke();
-
             // Draw weapon
             scr.beginPath();
             scr.arc(st.weaponPos.x, st.weaponPos.y, ACK.WEAPON_RADIUS, 0, 2 * Math.PI);
             scr.fillStyle = 'red';
             scr.fill();
             scr.strokeStyle = '1.5px black';
+            scr.stroke();
+
+            // Draw player
+            scr.beginPath();
+            scr.arc(st.playerPos.x, st.playerPos.y, ACK.PLAYER_RADIUS, 0, 2 * Math.PI);
+            scr.fillStyle = 'green';
+            scr.fill();
+            scr.strokeStyle = '2px black';
             scr.stroke();
         };
 
@@ -233,7 +234,7 @@ var AntiCon = new (function() {
         K.PLAYER_START = new AC.Point(K.WIDTH/2, K.HEIGHT/2);
         K.WEAPON_START = AC.Vector.move(K.PLAYER_START, -50, 70);
 
-        K.TETHER_LENGTH = 100;
+        K.TETHER_LENGTH = 128;
         K.MAX_WEAPON_MOMENTUM = 200; // pixels per second.
         K.MAX_WEAPON_MOMENTUM = 800; // pixels per second.
         K.WEAPON_FRICTION = 10; // 10 pixels per second^2.
