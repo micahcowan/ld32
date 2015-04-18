@@ -53,14 +53,14 @@ var AntiCon = new (function() {
             // WEAPON PHYSICS
             var weaponPos = st.weaponPos;
             var weaponMomentum = st.weaponMomentum;
+            var P = AC.Point;
+            var V = AC.Vector;
 
             // First, apply any existing momentum.
             if (weaponMomentum.isNonZero) {
-                var weaponMomentumThisFrame = AC.Vector.scaleBy(
-                    weaponMomentum
-                  , delta / 1000
-                );
-                weaponPos = AC.Vector.move(weaponPos, weaponMomentumThisFrame);
+                var weaponMomentumThisFrame = V.scaleBy(weaponMomentum,
+                                                        delta / 1000);
+                weaponPos = V.move(weaponPos, weaponMomentumThisFrame);
 
                 // Apply friction.
                 var friction = ACK.WEAPON_FRICTION * delta/1000
@@ -68,30 +68,32 @@ var AntiCon = new (function() {
                     weaponMomentum = new AC.Vector(0, 0);
                 }
                 else {
-                    weaponMomentum = AC.Vector.lengthen(weaponMomentum,
-                                                        -ACK.WEAPON_FRICTION);
+                    weaponMomentum = V.lengthen(weaponMomentum,
+                                                -ACK.WEAPON_FRICTION);
                 }
             }
 
             // Enforce the tether, and translate that into new momentum.
-            var distVec = AC.Point.diff(st.playerPos, weaponPos);
-            if (distVec.length > ACK.TETHER_LENGTH) {
-                distVec = AC.Vector.scaleTo(
-                    distVec
-                  , distVec.length - ACK.TETHER_LENGTH
-                );
-                weaponPos = AC.Point.move(weaponPos, distVec);
-                var distVecPerSec = AC.Vector.scaleBy(distVec, 1000 / delta);
-                weaponMomentum = AC.Vector.move(weaponMomentum,
-                                                distVecPerSec);
+            var distVec = P.diff(st.playerPos, weaponPos);
+            if (distVec.length > ACK.TETHER_STRETCH_LENGTH) {
+                distVec = V.scaleTo(distVec,
+                                    distVec.length - ACK.TETHER_STRETCH_LENGTH);
+                weaponPos = P.move(weaponPos, distVec);
+                var distVecPerSec = V.scaleBy(distVec, 1000 / delta);
+                weaponMomentum = V.move(weaponMomentum, distVecPerSec);
                 if (weaponMomentum.length > ACK.MAX_WEAPON_MOMENTUM) {
-                    weaponMomentum = AC.Vector.scaleTo(
-                        weaponMomentum
-                      , ACK.MAX_WEAPON_MOMENTUM
-                    );
+                    weaponMomentum = V.scaleTo(weaponMomentum,
+                                               ACK.MAX_WEAPON_MOMENTUM);
                 }
             }
-
+            // Is the tether stretched? Adjust momentum as needed.
+            distVec = P.diff(st.playerPos, weaponPos);
+            if (distVec.length > ACK.TETHER_LENGTH) {
+                var tetherMomentum = V.lengthen(distVec, -ACK.TETHER_LENGTH);
+                tetherMomentum = V.scaleBy(tetherMomentum,
+                                           ACK.TETHER_SNAP * 1000 / delta);
+                weaponMomentum = V.move(weaponMomentum, tetherMomentum);
+            }
             // Save the new values back into state object.
             st.weaponPos = weaponPos;
             st.weaponMomentum = weaponMomentum;
@@ -234,10 +236,12 @@ var AntiCon = new (function() {
         K.PLAYER_START = new AC.Point(K.WIDTH/2, K.HEIGHT/2);
         K.WEAPON_START = AC.Vector.move(K.PLAYER_START, -50, 70);
 
-        K.TETHER_LENGTH = 128;
-        K.MAX_WEAPON_MOMENTUM = 200; // pixels per second.
+        K.TETHER_LENGTH = 100;
+        K.TETHER_STRETCH = 0.85; // fraction of tether length
+        K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
+        K.TETHER_SNAP = 0.1;
         K.MAX_WEAPON_MOMENTUM = 800; // pixels per second.
-        K.WEAPON_FRICTION = 10; // 10 pixels per second^2.
+        K.WEAPON_FRICTION = 27; // pixels per second^2.
     })();
     var ACK = AC.defs;
 })();
