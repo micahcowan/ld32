@@ -16,20 +16,20 @@ var AntiCon = new (function() {
         // Listen for clickies.
         window.addEventListener('mouseup', AC.start);
         window.addEventListener('click', AC.start);
-        window.addEventListener('touchup', AC.start);
+        window.addEventListener('touchdown', AC.start);
+        window.addEventListener('touchmove', AC.start);
     };
 
     AC.start = function(ev) {
         window.removeEventListener('mouseup', AC.start);
         window.removeEventListener('click', AC.start);
-        window.removeEventListener('touchup', AC.start);
+        window.removeEventListener('touchdown', AC.start);
+        window.removeEventListener('touchmove', AC.start);
         AC.game = new AC.Game(ev);
     };
 
     AC.Game = function(ev) {
         var ACG = this;
-        AC.screen.clearRect(0, 0, ACK.WIDTH, ACK.HEIGHT);
-        AC.screen.fillText("Congratulations!", 50, 100);
 
         ACG.state = new AC.GameState(ev);
 
