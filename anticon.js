@@ -14,17 +14,18 @@ var AntiCon = new (function() {
         scr.fillText("Click here to begin!", 50, 100);
 
         // Listen for clickies.
-        window.addEventListener('mouseup', AC.start);
-        window.addEventListener('click', AC.start);
-        window.addEventListener('touchdown', AC.start);
-        window.addEventListener('touchmove', AC.start);
+        cvs.addEventListener('mouseup', AC.start);
+        cvs.addEventListener('click', AC.start);
+        cvs.addEventListener('touchdown', AC.start);
+        cvs.addEventListener('touchmove', AC.start);
     };
 
     AC.start = function(ev) {
-        window.removeEventListener('mouseup', AC.start);
-        window.removeEventListener('click', AC.start);
-        window.removeEventListener('touchdown', AC.start);
-        window.removeEventListener('touchmove', AC.start);
+        var cvs = AC.canvas;
+        cvs.removeEventListener('mouseup', AC.start);
+        cvs.removeEventListener('click', AC.start);
+        cvs.removeEventListener('touchdown', AC.start);
+        cvs.removeEventListener('touchmove', AC.start);
         AC.game = new AC.Game(ev);
     };
 
@@ -145,6 +146,8 @@ var AntiCon = new (function() {
                 x = ev.clientX;
                 y = ev.clientY;
             }
+            x -= AC.canvas.offsetLeft;
+            y -= AC.canvas.offsetTop;
             ACG.state.mousePos = new AC.Point(x, y);
         };
 
@@ -160,12 +163,14 @@ var AntiCon = new (function() {
         S.gameElapsed = 0;
 
         var startPos = ACK.PLAYER_START;
+        var oL = AC.canvas.offsetLeft;
+        var oT = AC.canvas.offsetTop;
         if ('touches' in ev) {
-            startPos = new AC.Point(ev.touches[0].clientX,
-                                    ev.touches[0].clientY);
+            startPos = new AC.Point(ev.touches[0].clientX - oL,
+                                    ev.touches[0].clientY - oT);
         }
         else if ('clientX' in ev) {
-            startPos = new AC.Point(ev.clientX, ev.clientY);
+            startPos = new AC.Point(ev.clientX - oL, ev.clientY - oT);
         }
 
         S.mousePos  = startPos;
