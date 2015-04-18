@@ -315,8 +315,26 @@ var AntiCon = new (function() {
         this.update = function(state, delta) {
             var frameVel = V.scaleBy(this.velocity, delta / 1000);
             this.position = P.move(this.position, frameVel);
-            if (this.position.y > ACK.HEIGHT + this.height/2)
+            if (this.position.y > ACK.HEIGHT + this.height/2) {
                 this.isDead = true;
+            }
+            else if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
+                // Check collision
+                // FIXME: just checking weapon point, should check full
+                // radius probably.
+                var wp = state.weaponPos;
+                var pos = this.position;
+                var rect = {
+                    t: pos.y - this.height/2
+                  , l: pos.x - this.width/2
+                  , b: pos.y + this.height/2
+                  , r: pos.x + this.width/2
+                };
+                if (wp.x >= rect.l && wp.x <= rect.r
+                        && wp.y >= rect.t && wp.y <= rect.b) {
+                    this.isDead = true;
+                }
+            }
         };
         this.draw = function(scr) {
             scr.save();
@@ -327,6 +345,8 @@ var AntiCon = new (function() {
             scr.strokeRect.apply(scr, this.rect);
             scr.restore();
         }
+        this.position = new P(0,0);
+        this.velocity = new V(0,0);
         this.width = 40;
         this.height = 60;
         this.rect = [- this.width/2, - this.height/2, this.width, this.height];
@@ -352,6 +372,7 @@ var AntiCon = new (function() {
         K.TETHER_SNAP = 0.1;
         K.MAX_WEAPON_MOMENTUM = 800; // pixels per second.
         K.WEAPON_FRICTION = 27; // pixels per second^2.
+        K.MIN_WEAPON_SPEED = 400;
     })();
     var ACK = AC.defs;
 })();
