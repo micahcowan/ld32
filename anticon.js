@@ -14,11 +14,15 @@ var AntiCon = new (function() {
         scr.fillText("Click here to begin!", 50, 100);
 
         // Listen for clickies.
+        window.addEventListener('mouseup', AC.start);
         window.addEventListener('click', AC.start);
+        window.addEventListener('touchup', AC.start);
     };
 
     AC.start = function() {
+        window.removeEventListener('mouseup', AC.start);
         window.removeEventListener('click', AC.start);
+        window.removeEventListener('touchup', AC.start);
         AC.game = new AC.Game();
     };
 
@@ -132,10 +136,20 @@ var AntiCon = new (function() {
         };
 
         ACG.handleMouseMove = function(ev) {
-            ACG.state.mousePos = new AC.Point(ev.clientX, ev.clientY);
+            var x, y;
+            if ('touches' in ev) {
+                x = ev.touches[0].clientX;
+                y = ev.touches[0].clientY;
+            }
+            else {
+                x = ev.clientX;
+                y = ev.clientY;
+            }
+            ACG.state.mousePos = new AC.Point(x, y);
         };
 
         AC.canvas.addEventListener('mousemove', ACG.handleMouseMove);
+        AC.canvas.addEventListener('touchmove', ACG.handleMouseMove);
         ACG.tmout = window.setTimeout(ACG.update, ACK.MSECS_PER_FRAME);
     };
 
