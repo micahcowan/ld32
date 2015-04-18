@@ -16,7 +16,7 @@ var AntiCon = new (function() {
         // Listen for clickies.
         cvs.addEventListener('mouseup', AC.start);
         cvs.addEventListener('click', AC.start);
-        cvs.addEventListener('touchdown', AC.start);
+        cvs.addEventListener('touchstart', AC.start);
         cvs.addEventListener('touchmove', AC.start);
     };
 
@@ -24,8 +24,10 @@ var AntiCon = new (function() {
         var cvs = AC.canvas;
         cvs.removeEventListener('mouseup', AC.start);
         cvs.removeEventListener('click', AC.start);
-        cvs.removeEventListener('touchdown', AC.start);
+        cvs.removeEventListener('touchstart', AC.start);
         cvs.removeEventListener('touchmove', AC.start);
+        ev.stopPropagation();
+        ev.preventDefault();
         AC.game = new AC.Game(ev);
     };
 
@@ -153,6 +155,7 @@ var AntiCon = new (function() {
 
         AC.canvas.addEventListener('mousemove', ACG.handleMouseMove);
         AC.canvas.addEventListener('touchmove', ACG.handleMouseMove);
+        AC.canvas.addEventListener('touchstart', ACG.handleMouseMove);
         ACG.tmout = window.setTimeout(ACG.update, ACK.MSECS_PER_FRAME);
     };
 
@@ -172,6 +175,8 @@ var AntiCon = new (function() {
         else if ('clientX' in ev) {
             startPos = new AC.Point(ev.clientX - oL, ev.clientY - oT);
         }
+        ev.stopPropagation();
+        ev.preventDefault();
 
         S.mousePos  = startPos;
         S.playerPos = startPos;
