@@ -31,9 +31,8 @@ var AntiCon = new (function() {
         ];
         for (var i=0; i < AC.laughSnds.length; ++i) {
             var sound = AC.laughSnds[i];
-            createjs.Sound.registerSound(sound + '.ogg', sound);
+            createjs.Sound.registerSound(sound + '.mp3', sound);
         }
-        createjs.Sound.alternateExtensions = ['mp3'];
     };
 
     AC.start = function(ev) {
