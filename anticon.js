@@ -19,6 +19,20 @@ var AntiCon = new (function() {
         cvs.addEventListener('click', AC.start);
         cvs.addEventListener('touchstart', AC.start);
         cvs.addEventListener('touchmove', AC.start);
+
+        // Start loading sounds.
+        AC.laughSnds = [
+            'high-whoo'
+          , 'laugh1'
+          , 'squee'
+          , 'whee'
+          , 'whoo'
+          , 'whoo2'
+        ];
+        for (var i=0; i < AC.laughSnds.length; ++i) {
+            var sound = AC.laughSnds[i];
+            createjs.Sound.registerSound(sound + '.ogg', sound);
+        }
     };
 
     AC.start = function(ev) {
@@ -41,6 +55,11 @@ var AntiCon = new (function() {
         ACG.update = function() {
             ACG.state.update();
             ACG.draw();
+            if (ACG.state.laughing) {
+                ACG.state.laughing = false;
+                var i = Math.floor( Math.random() * AC.laughSnds.length );
+                createjs.Sound.play(AC.laughSnds[i]);
+            }
             ACG.tmout = window.setTimeout(ACG.update, ACK.MSECS_PER_FRAME);
         };
 
@@ -142,6 +161,10 @@ var AntiCon = new (function() {
                              V.scaleBy(ACK.WEAPON_OFFSET, ACK.TENSOR));
         S.tensorMomentum = new V(0, 0);
         S.weaponMomentum = new V(0, 0);
+
+        S.fastTime = 0;
+        S.lastLaugh = 0;
+        S.laughing = false;
 
         this.sprites = [];
         this.track = new AC.LevelTrack();
@@ -251,6 +274,22 @@ var AntiCon = new (function() {
             st.tensorPos = tensorPos;
             st.tensorMomentum = tensorMomentum;
             st.weaponMomentum = weaponMomentum;
+
+            // Track weapon momentum, for laughing purposes.
+            if (weaponMomentum.length >= ACK.LAUGH_SPEED) {
+                st.fastTime += delta;
+                if (st.fastTime >= ACK.LAUGH_MIN_TIME &&
+                    (st.lastLaugh == 0
+                     || st.fastTime - st.lastLaugh >= ACK.LAUGH_WAIT)) {
+                    st.laughing = true;
+                    st.lastLaugh = st.fastTime;
+                }
+            }
+            else {
+                st.laughing = false;
+                st.fastTime = 0;
+                st.lastLaugh = 0;
+            }
 
             this.track.run(st);
             for (var i=0; i < this.sprites.length; ) {
@@ -462,6 +501,10 @@ var AntiCon = new (function() {
         K.WEAPON_FRICTION = 17; // pixels per second^2.
         K.TENSOR_FRICTION = 24; // pixels per second^2.
         K.MIN_WEAPON_SPEED = 400;
+
+        K.LAUGH_SPEED = K.MIN_WEAPON_SPEED;
+        K.LAUGH_MIN_TIME = 1500;
+        K.LAUGH_WAIT = 5000;
 
         K.SCORE_LINGER = 1000;
     })();
