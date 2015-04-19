@@ -448,24 +448,16 @@ var AntiCon = new (function() {
                 // Check collision
                 // FIXME: just checking weapon point, should check full
                 // radius probably.
-                var wp = state.weaponPos;
-                var pos = this.position;
-                var rect = {
-                    t: pos.y - this.height/2
-                  , l: pos.x - this.width/2
-                  , b: pos.y + this.height/2
-                  , r: pos.x + this.width/2
-                };
-                if (wp.x >= rect.l && wp.x <= rect.r
-                        && wp.y >= rect.t && wp.y <= rect.b) {
+                if (AC.isCircleInRect(state.weaponPos,
+                                      ACK.WEAPON_RADIUS, this.rect)) {
                     this.killed = ACK.SCORE_LINGER;
                 }
             }
         };
         this.draw = function(scr) {
-            scr.save();
-            scr.translate(this.position.x, this.position.y);
             if (this.killed) {
+                scr.save();
+                scr.translate(this.position.x, this.position.y);
                 scr.textAlign = 'center';
                 scr.font = '14px Arial, Helvetica, sans-serif';
                 scr.strokeStyle = 'WhiteSmoke';
@@ -473,23 +465,86 @@ var AntiCon = new (function() {
                 scr.strokeText(this.points, 0, 0);
                 scr.fillStyle = 'black';
                 scr.fillText(this.points, 0, 0);
+                scr.restore();
             }
             else {
+                // fillRect wants x, y, w, h.
+                var rect = [this.position.x - this.width/2, this.position.y - this.height/2, this.width, this.height];
                 scr.fillStyle = 'blue';
-                scr.fillRect.apply(scr, this.rect);
+                scr.fillRect.apply(scr, rect);
                 scr.lineWidth = 1.5;
                 scr.strokeStyle = 'black';
-                scr.strokeRect.apply(scr, this.rect);
+                scr.strokeRect.apply(scr, rect);
             }
-            scr.restore();
         }
         this.points = 100;
         this.position = new P(0,0);
         this.velocity = new V(0,0);
         this.width = 40;
         this.height = 60;
-        this.rect = [- this.width/2, - this.height/2, this.width, this.height];
+        Object.defineProperty(this, 'rect', {
+            get: function() {
+                     // t, l, b, r
+                     var p = this.position;
+                     var h = this.height;
+                     var w = this.width;
+                     return {
+                         t: p.y - h/2
+                       , l: p.x - w/2
+                       , b: p.y + h/2
+                       , r: p.x + w/2
+                     };
+                 }
+        });
     })();
+
+    // Utility function for collision detection
+    AC.isCircleInRect = function(pos, r, rect) {
+        // Note that checking whether a circle of radius r is within a
+        // rect is the same as checking whether the center of that
+        // circle is within a larger rectangle with rounded corners.
+        var expRect = {
+            t: rect.t - r
+          , l: rect.l - r
+          , b: rect.b + r
+          , r: rect.r + r
+        };
+
+        // Are we within the maximum bounds of the expanded rectangle?
+        if (AC.isPointInRect(pos, expRect)) {
+            // Yes we are, so it's probably a collision. But additional
+            // checking is necessary to be certain.
+            if ((pos.x > rect.l && pos.x < rect.r)
+                    || (pos.y > rect.t && pos.y < rect.b)) {
+                // We're inside, away from corners, so we're good.
+                return true;
+            }
+            else {
+                var verts = ['t', 'b'];
+                var hors  = ['l', 'r'];
+                // corners: LT RT LB RB
+                var corners = hors.map(function(a) {
+                    return verts.map(function(b) { return [rect[a], rect[b]]; });
+                });
+                corners = corners[0].concat(corners[1]);
+                for (var i=0; i < corners.length; ++i) {
+                    var c = corners[i];
+                    if (AC.isPointInRect(pos, {t: c[1] - r, l: c[0] - r,
+                                               b: c[1] + r, r: c[0] + r})
+                            && r >= Math.sqrt((pos.x - c[0]) * (pos.x - c[0])
+                                              + (pos.y - c[1]) * (pos.y - c[1]))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    };
+
+    AC.isPointInRect = function(pos, rect) {
+        return (pos.x >= rect.l && pos.x <= rect.r
+                && pos.y >= rect.t && pos.y <= rect.b);
+    };
 
     AC.defs = new (function() {
         var K = this;
