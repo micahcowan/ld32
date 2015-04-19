@@ -104,7 +104,7 @@ var AntiCon = new (function() {
         K.WEAPON_OFFSET = new V(-50, 70);
         K.WEAPON_MOMENTUM = new V(-400, -400);
 
-        K.TETHER_LENGTH = 100;
+        K.TETHER_LENGTH = 80;
         K.TETHER_STRETCH = 0.65; // fraction of tether length
         K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
         K.TETHER_SNAP = 0.1;
@@ -663,6 +663,9 @@ var AntiCon = new (function() {
             this.position = P.move(_pos, 0, - this.height/2);
         }
         if (_pos.x == ACK.WIDTH) {
+            this.position = P.move(_pos, 0, + this.width/2);
+        }
+        if (_pos.x == 0) {
             this.position = P.move(_pos, 0, - this.width/2);
         }
     };
@@ -871,8 +874,13 @@ var AntiCon = new (function() {
     AC.LevelTrack.prototype = new (function() {
         // Event: delay, repeat times, transform, constructor, args
         this.txfmA = function(ev) {
-                ev[4] = new V(ACK.WIDTH - ev[4].x, 0);
-                ev[6] = new V(-ev[6].x, 0);
+                ev[4] = new V(ACK.WIDTH - ev[4].x, ev[4].y);
+                ev[6] = new V(-ev[6].x, ev[6].y);
+                return ev;
+        };
+        this.txfmB = function(ev) {
+                ev[4] = new V(ev[4].x, ACK.HEIGHT - ev[4].y);
+                ev[6] = new V(ev[6].x, -ev[6].y);
                 return ev;
         };
 
@@ -880,9 +888,9 @@ var AntiCon = new (function() {
         this.events = [
             [2000, 6, this.txfmA, AC.Enemy,
              new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 12000]
-          , [1000, 20, this.txfmA, AC.Enemy,
-             new V(ACK.WIDTH / 3, 0), new V(0, 100), new V(-8, 0), 8000]
-          , [1000, 1, this.txfmA, AC.BurstEnemy,
+          , [1000, 20, this.txfmB, AC.Enemy,
+             new V(0, ACK.HEIGHT / 4), new V(100, 0), new V(0, -8), 8000]
+          , [1000, 1, null, AC.BurstEnemy,
              new V(ACK.WIDTH, ACK.HEIGHT / 4), new V(-40, 0), new V(0, 0), 3500]
           , [2000, 6, this.txfmA, AC.Enemy,
              new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 12000]
@@ -913,7 +921,7 @@ var AntiCon = new (function() {
                     this.eventIdx = 0;
                 ev = this.events[this.eventIdx].slice();
             }
-            else {
+            else if (ev[2] != null) {
                 // transform
                 ev = ev[2](ev);
             }
