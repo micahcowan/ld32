@@ -342,7 +342,7 @@ var AntiCon = new (function() {
     // Object class for generating game events (like enemies)
     AC.LevelTrack = function() {
         this.nextEvent = [1000, AC.Enemy, new V(ACK.WIDTH / 3, 0),
-                          new V(0, 80)];
+                          new V(0, 80), new V(-5, 0)];
     };
     AC.LevelTrack.prototype = new (function() {
         this.run = function(state) {
@@ -357,13 +357,15 @@ var AntiCon = new (function() {
                 // XXX
                 this.nextEvent[0] += 1000;
                 this.nextEvent[2] = new V(ACK.WIDTH - ev[2].x, 0);
+                this.nextEvent[4] = new V(-ev[4].x, 0);
             }
         };
     })();
 
-    AC.Enemy = function(_pos, _vel) {
+    AC.Enemy = function(_pos, _vel, _accel) {
         this.position = _pos;
         this.velocity = _vel;
+        this.accel = _accel;
         this.isDead = false;
 
         if (_pos.y == 0) {
@@ -374,6 +376,8 @@ var AntiCon = new (function() {
         this.update = function(state, delta) {
             var frameVel = V.scaleBy(this.velocity, delta / 1000);
             this.position = P.move(this.position, frameVel);
+            var frameAccel = V.scaleBy(this.accel, delta / 1000);
+            this.velocity = V.move(this.velocity, frameAccel);
             if (this.position.y > ACK.HEIGHT + this.height/2) {
                 this.isDead = true;
             }
