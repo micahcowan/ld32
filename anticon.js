@@ -232,12 +232,17 @@ var AntiCon = new (function() {
                                            ACK.TETHER_SNAP * 1000 / delta);
                 tensorMomentum = V.move(tensorMomentum, tetherMomentum);
             }
-            distVec = P.diff(st.playerPos, weaponPos);
-            if (distVec.length > ACK.TETHER_LENGTH) {
-                var tetherMomentum = V.lengthen(distVec, -ACK.TETHER_LENGTH);
+            distVec = P.diff(st.tensorPos, weaponPos);
+            if (distVec.length > ACK.WEAPON_TETHER_LENGTH) {
+                // Differs from one above - tensor and weapon each share
+                // the tension, moving toward eachother.
+                var tetherMomentum = V.lengthen(distVec, -ACK.WEAPON_TETHER_LENGTH);
                 tetherMomentum = V.scaleBy(tetherMomentum,
                                            ACK.TETHER_SNAP * 1000 / delta);
-                weaponMomentum = V.move(weaponMomentum, tetherMomentum);
+                var w = V.scaleBy(tetherMomentum, 0.5);
+                var t = V.scaleBy(tetherMomentum, -0.5);
+                weaponMomentum = V.move(weaponMomentum, w);
+                tensorMomentum = V.move(tensorMomentum, t);
             }
             // Save the new values back into state object.
             st.weaponPos = weaponPos;
@@ -436,8 +441,8 @@ var AntiCon = new (function() {
         K.PLAYER_START = new P(K.WIDTH/2, K.HEIGHT/2);
         K.WEAPON_OFFSET = new V(-50, 70);
 
-        K.TETHER_LENGTH = 100;
-        K.TETHER_STRETCH = 0.85; // fraction of tether length
+        K.TETHER_LENGTH = 120;
+        K.TETHER_STRETCH = 0.65; // fraction of tether length
         K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
         K.TETHER_SNAP = 0.1;
         K.TENSOR = 0.67; // fraction of tether length where tensor lives
@@ -447,9 +452,9 @@ var AntiCon = new (function() {
         K.WEAPON_TETHER_LENGTH = K.TETHER_LENGTH - K.TENSOR_TETHER_LENGTH;
         K.WEAPON_TETHER_STRETCH_LENGTH = K.WEAPON_TETHER_LENGTH
             * (1 + K.TETHER_STRETCH);
-        K.MAX_WEAPON_MOMENTUM = 800; // pixels per second.
-        K.WEAPON_FRICTION = 27; // pixels per second^2.
-        K.TENSOR_FRICTION = 54; // pixels per second^2.
+        K.MAX_WEAPON_MOMENTUM = 1200; // pixels per second.
+        K.WEAPON_FRICTION = 17; // pixels per second^2.
+        K.TENSOR_FRICTION = 24; // pixels per second^2.
         K.MIN_WEAPON_SPEED = 400;
 
         K.SCORE_LINGER = 1000;
