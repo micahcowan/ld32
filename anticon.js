@@ -3,7 +3,6 @@
 /*
     TODO:
 
-    - Sound for player hit
     - player death
     - score
     - more complex play/baddies
@@ -207,9 +206,18 @@ var AntiCon = new (function() {
             scr.lineWidth = 4;
             scr.lineJoin = 'round';
             scr.strokeStyle = 'white';
+            scr.textAlign = 'center';
             scr.strokeText(msg, ACK.WIDTH/2, 14);
             scr.fillStyle = 'black';
             scr.fillText(msg, ACK.WIDTH/2, 14);
+
+            scr.font = '18pt Arial, Helvetica, sans-serif';
+            scr.lineWidth = 7;
+            var x = ACK.WIDTH - 10;
+            var y = 24;
+            scr.textAlign = 'right';
+            scr.strokeText(st.score, x, y);
+            scr.fillText(st.score, x, y);
         };
 
         ACG.handleMouseMove = function(ev) {
@@ -272,6 +280,7 @@ var AntiCon = new (function() {
         S.laughing = false;
         S.sounds = [];
         S.invincible = 0;
+        S.score = 0;
 
         this.sprites = [];
         this.track = new AC.LevelTrack();
@@ -431,6 +440,10 @@ var AntiCon = new (function() {
             this.sounds.push('ouch');
             this.invincible = ACK.HIT_INVINCIBILITY;
         };
+
+        this.addScore = function(score) {
+            this.score += score;
+        };
     })();
 
     AC.Point = function(_x, _y) {
@@ -559,8 +572,9 @@ var AntiCon = new (function() {
                     // Check collision
                     if (AC.isCircleInRect(state.weaponPos,
                                           ACK.WEAPON_RADIUS, this.rect)) {
+                        state.sounds.push('pop');
                         this.killed = ACK.SCORE_LINGER;
-                        createjs.Sound.play('pop');
+                        state.addScore(this.points);
                     }
                 }
 
@@ -571,6 +585,7 @@ var AntiCon = new (function() {
                     state.hurtPlayer();
                     // Kamikaze
                     this.killed = ACK.SCORE_LINGER;
+                    state.addScore(this.points);
                 }
             }
         };
