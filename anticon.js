@@ -690,13 +690,12 @@ var AntiCon = new (function() {
                     state.addScore(this.points);
             }
             // Check weapon collision
-            else if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
-                if (AC.isCircleInRect(state.weaponPos,
-                                      ACK.WEAPON_RADIUS, this.rect)) {
-                    state.sounds.push('pop');
-                    this.killed = ACK.SCORE_LINGER;
-                    state.addScore(this.points);
-                }
+            else if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED
+                      && AC.isCircleInRect(state.weaponPos,
+                                           ACK.WEAPON_RADIUS, this.rect)) {
+                state.sounds.push('pop');
+                this.killed = ACK.SCORE_LINGER;
+                state.addScore(this.points);
             }
             // Maybe fire?
             else if (this.shootTime <= 0) {
