@@ -3,8 +3,6 @@
 /*
     TODO:
 
-    - player death
-    - score
     - more complex play/baddies
     - graphics
 */
@@ -87,7 +85,7 @@ var AntiCon = new (function() {
         var music = AC.songInst;
         var MUSIC_KEYS = ['M', 'm', 'U+004D'];
         if (MUSIC_KEYS.indexOf(k) != -1 && music != undefined) {
-            music.pause() || music.resume();
+            music.paused = !music.paused;
         }
     };
 
@@ -108,6 +106,9 @@ var AntiCon = new (function() {
         cvs.removeEventListener('touchmove', AC.start);
         ev.stopPropagation();
         ev.preventDefault();
+        if (AC.game !== null) {
+            window.clearTimeout(AC.game.tmout);
+        }
         AC.game = new AC.Game(ev);
     };
 
@@ -153,52 +154,76 @@ var AntiCon = new (function() {
                 st.sprites[i].draw(scr);
             }
 
-            // Draw tether
-            scr.beginPath();
-            if (false) {
-                // Uncomment this to see the tensor
-                scr.lineWidth = 1.5;
+            if (st.timeOfDeath == 0) {
+                // Draw tether
+                scr.beginPath();
+                if (false) {
+                    // Uncomment this to see the tensor
+                    scr.lineWidth = 1.5;
+                    scr.moveTo(st.playerPos.x, st.playerPos.y)
+                    scr.lineTo(st.tensorPos.x, st.tensorPos.y);
+                    scr.lineTo(st.weaponPos.x, st.weaponPos.y);
+                    scr.strokeStyle = 'silver';
+                    scr.stroke();
+                }
+                scr.beginPath();
                 scr.moveTo(st.playerPos.x, st.playerPos.y)
-                scr.lineTo(st.tensorPos.x, st.tensorPos.y);
-                scr.lineTo(st.weaponPos.x, st.weaponPos.y);
-                scr.strokeStyle = 'silver';
+                scr.quadraticCurveTo(st.tensorPos.x, st.tensorPos.y,
+                                     st.weaponPos.x, st.weaponPos.y);
+                scr.lineWidth = 4;
+                scr.strokeStyle = 'black';
+                scr.stroke();
+
+                // Draw weapon
+                scr.beginPath();
+                scr.arc(st.weaponPos.x, st.weaponPos.y, ACK.WEAPON_RADIUS, 0, 2 * Math.PI);
+                scr.fillStyle = 'red';
+                scr.fill();
+                if (st.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
+                    scr.lineWidth = 3.5;
+                    scr.strokeStyle = 'yellow';
+                }
+                else {
+                    scr.lineWidth = 1.5;
+                    scr.strokeStyle = 'black';
+                }
+                scr.stroke();
+
+                // Draw player
+                scr.beginPath();
+                scr.arc(st.playerPos.x, st.playerPos.y, ACK.PLAYER_RADIUS, 0, 2 * Math.PI);
+                var cycle = ACK.HIT_INVINCIBILITY / ACK.INVINCIBLE_FLASHES;
+                if (st.invincible > 0 && (st.invincible % cycle)/cycle > 0.5)
+                    scr.fillStyle = 'silver';
+                else
+                    scr.fillStyle = 'green';
+                scr.fill();
+                scr.lineWidth = 2;
+                scr.strokeStyle = 'black';
                 scr.stroke();
             }
-            scr.beginPath();
-            scr.moveTo(st.playerPos.x, st.playerPos.y)
-            scr.quadraticCurveTo(st.tensorPos.x, st.tensorPos.y,
-                                 st.weaponPos.x, st.weaponPos.y);
-            scr.lineWidth = 4;
-            scr.strokeStyle = 'black';
-            scr.stroke();
-
-            // Draw weapon
-            scr.beginPath();
-            scr.arc(st.weaponPos.x, st.weaponPos.y, ACK.WEAPON_RADIUS, 0, 2 * Math.PI);
-            scr.fillStyle = 'red';
-            scr.fill();
-            if (st.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
-                scr.lineWidth = 3.5;
-                scr.strokeStyle = 'yellow';
-            }
             else {
-                scr.lineWidth = 1.5;
-                scr.strokeStyle = 'black';
-            }
-            scr.stroke();
+                // Draw game over text.
+                scr.font = 'bold 48px Arial Black, Helvetica, sans-serif';
+                var msg = "GAME OVER";
+                scr.lineWidth = 10;
+                scr.lineJoin = 'round';
+                scr.strokeStyle = 'white';
+                scr.textAlign = 'center';
+                scr.strokeText(msg, ACK.WIDTH/2, ACK.HEIGHT/2);
+                scr.fillStyle = 'black';
+                scr.fillText(msg, ACK.WIDTH/2, ACK.HEIGHT/2);
 
-            // Draw player
-            scr.beginPath();
-            scr.arc(st.playerPos.x, st.playerPos.y, ACK.PLAYER_RADIUS, 0, 2 * Math.PI);
-            var cycle = ACK.HIT_INVINCIBILITY / ACK.INVINCIBLE_FLASHES;
-            if (st.invincible > 0 && (st.invincible % cycle)/cycle > 0.5)
-                scr.fillStyle = 'silver';
-            else
-                scr.fillStyle = 'green';
-            scr.fill();
-            scr.lineWidth = 2;
-            scr.strokeStyle = 'black';
-            scr.stroke();
+                if (st.gameElapsed - st.timeOfDeath >= ACK.MUSIC_FADEOUT) {
+                    var msg = "Click to play again";
+                    scr.font = '20px Arial Black, Helvetica, sans-serif';
+                    scr.lineWidth = 5;
+                    scr.lineJoin = 'round';
+                    scr.textAlign = 'center';
+                    scr.strokeText(msg, ACK.WIDTH/2, ACK.HEIGHT/2 + 24);
+                    scr.fillText(msg, ACK.WIDTH/2, ACK.HEIGHT/2 + 24);
+                }
+            }
 
             // Draw text.
             scr.font = '12px Arial, Helvetica, sans-serif';
@@ -213,11 +238,19 @@ var AntiCon = new (function() {
 
             scr.font = '18pt Arial, Helvetica, sans-serif';
             scr.lineWidth = 7;
+            var x = 10;
+            var y = 24;
+            scr.textAlign = 'left';
+            scr.strokeText(st.score, x, y);
+            scr.fillText(st.score, x, y);
+
+            scr.font = '18pt Arial, Helvetica, sans-serif';
+            scr.lineWidth = 7;
             var x = ACK.WIDTH - 10;
             var y = 24;
             scr.textAlign = 'right';
-            scr.strokeText(st.score, x, y);
-            scr.fillText(st.score, x, y);
+            scr.strokeText(st.playerHits, x, y);
+            scr.fillText(st.playerHits, x, y);
         };
 
         ACG.handleMouseMove = function(ev) {
@@ -281,6 +314,8 @@ var AntiCon = new (function() {
         S.sounds = [];
         S.invincible = 0;
         S.score = 0;
+        S.playerHits = ACK.PLAYER_HITS;
+        S.timeOfDeath = 0;
 
         this.sprites = [];
         this.track = new AC.LevelTrack();
@@ -300,128 +335,146 @@ var AntiCon = new (function() {
             }
             st.gameElapsed += delta;
 
-            if (st.invincible > 0) {
-                st.invincible -= delta;
-                if (st.invincible < 0)
-                    st.invincible = 0;
-            }
+            if (st.timeOfDeath == 0) {
+                if (st.invincible > 0) {
+                    st.invincible -= delta;
+                    if (st.invincible < 0)
+                        st.invincible = 0;
+                }
 
-            // TODO: speed limit the player slightly?
-            st.playerPos = st.mousePos;
+                // TODO: speed limit the player slightly?
+                st.playerPos = st.mousePos;
 
-            // WEAPON PHYSICS
-            var weaponPos = st.weaponPos;
-            var startWeaponPos = weaponPos;
-            var weaponMomentum = st.weaponMomentum;
-            var tensorPos = st.tensorPos;
-            var tensorMomentum = st.tensorMomentum
+                // WEAPON PHYSICS
+                var weaponPos = st.weaponPos;
+                var startWeaponPos = weaponPos;
+                var weaponMomentum = st.weaponMomentum;
+                var tensorPos = st.tensorPos;
+                var tensorMomentum = st.tensorMomentum
 
-            // First, apply any existing momentum.
-            if (weaponMomentum.isNonZero) {
-                var weaponMomentumThisFrame = V.scaleBy(weaponMomentum,
-                                                        delta / 1000);
-                weaponPos = V.move(weaponPos, weaponMomentumThisFrame);
+                // First, apply any existing momentum.
+                if (weaponMomentum.isNonZero) {
+                    var weaponMomentumThisFrame = V.scaleBy(weaponMomentum,
+                                                            delta / 1000);
+                    weaponPos = V.move(weaponPos, weaponMomentumThisFrame);
 
-                // Apply friction.
-                var friction = ACK.WEAPON_FRICTION * delta/1000
-                if (weaponMomentum.length <= ACK.WEAPON_FRICTION) {
-                    weaponMomentum = new V(0, 0);
+                    // Apply friction.
+                    var friction = ACK.WEAPON_FRICTION * delta/1000
+                    if (weaponMomentum.length <= ACK.WEAPON_FRICTION) {
+                        weaponMomentum = new V(0, 0);
+                    }
+                    else {
+                        weaponMomentum = V.lengthen(weaponMomentum,
+                                                    -ACK.WEAPON_FRICTION);
+                    }
+                }
+                if (tensorMomentum.isNonZero) {
+                    var tensorMomentumThisFrame = V.scaleBy(tensorMomentum,
+                                                            delta / 1000);
+                    tensorPos = V.move(tensorPos, tensorMomentumThisFrame);
+
+                    // Apply friction.
+                    var friction = ACK.TENSOR_FRICTION * delta/1000
+                    if (tensorMomentum.length <= ACK.TENSOR_FRICTION) {
+                        tensorMomentum = new V(0, 0);
+                    }
+                    else {
+                        tensorMomentum = V.lengthen(tensorMomentum, -ACK.TENSOR_FRICTION);
+                    }
+                }
+
+                // Enforce the tether, and translate that into new momentum.
+                var distVec = P.diff(st.playerPos, tensorPos);
+                if (distVec.length > ACK.TENSOR_TETHER_STRETCH_LENGTH) {
+                    distVec = V.scaleTo(distVec,
+                                        distVec.length - ACK.TENSOR_TETHER_STRETCH_LENGTH);
+                    tensorPos = P.move(tensorPos, distVec);
+                    var distVecPerSec = V.scaleBy(distVec, 1000 / delta);
+                    tensorMomentum = V.move(tensorMomentum, distVecPerSec);
+                    if (tensorMomentum.length > ACK.MAX_WEAPON_MOMENTUM) {
+                        tensorMomentum = V.scaleTo(tensorMomentum,
+                                                   ACK.MAX_WEAPON_MOMENTUM);
+                    }
+                }
+                distVec = P.diff(tensorPos, weaponPos);
+                if (distVec.length > ACK.WEAPON_TETHER_STRETCH_LENGTH) {
+                    distVec = V.scaleTo(distVec,
+                                        distVec.length - ACK.WEAPON_TETHER_STRETCH_LENGTH);
+                    weaponPos = P.move(weaponPos, distVec);
+                    var distVecPerSec = V.scaleBy(distVec, 1000 / delta);
+                    weaponMomentum = V.move(weaponMomentum, distVecPerSec);
+                    if (weaponMomentum.length > ACK.MAX_WEAPON_MOMENTUM) {
+                        weaponMomentum = V.scaleTo(weaponMomentum,
+                                                   ACK.MAX_WEAPON_MOMENTUM);
+                    }
+                }
+                // Is the tether stretched? Adjust momentum as needed.
+                distVec = P.diff(st.playerPos, tensorPos);
+                if (distVec.length > ACK.TENSOR_TETHER_LENGTH) {
+                    var tetherMomentum = V.lengthen(distVec, -ACK.TENSOR_TETHER_LENGTH);
+                    tetherMomentum = V.scaleBy(tetherMomentum,
+                                               ACK.TETHER_SNAP * 1000 / delta);
+                    tensorMomentum = V.move(tensorMomentum, tetherMomentum);
+                }
+                distVec = P.diff(st.tensorPos, weaponPos);
+                if (distVec.length > ACK.WEAPON_TETHER_LENGTH) {
+                    // Differs from one above - tensor and weapon each share
+                    // the tension, moving toward eachother.
+                    var tetherMomentum = V.lengthen(distVec, -ACK.WEAPON_TETHER_LENGTH);
+                    tetherMomentum = V.scaleBy(tetherMomentum,
+                                               ACK.TETHER_SNAP * 1000 / delta);
+                    var w = V.scaleBy(tetherMomentum, 0.5);
+                    var t = V.scaleBy(tetherMomentum, -0.5);
+                    weaponMomentum = V.move(weaponMomentum, w);
+                    tensorMomentum = V.move(tensorMomentum, t);
+                }
+                // Save the new values back into state object.
+                st.weaponPos = weaponPos;
+                st.tensorPos = tensorPos;
+                st.tensorMomentum = tensorMomentum;
+                st.weaponMomentum = weaponMomentum;
+
+                // Track weapon momentum, for laughing purposes.
+                if (weaponMomentum.length >= ACK.LAUGH_SPEED) {
+                    st.fastTime += delta;
+
+                    if (st.fastTime >= ACK.LAUGH_MIN_TIME &&
+                        (st.lastLaugh == 0
+                         || st.fastTime - st.lastLaugh >= ACK.LAUGH_WAIT)) {
+                        st.laughing = true;
+                        st.lastLaugh = st.fastTime;
+                    }
+
+                    if (startWeaponPos.y < st.playerPos.y
+                             && weaponPos.y < st.playerPos.y
+                             && ((weaponPos.x < st.playerPos.x)
+                                 != (startWeaponPos.x < st.playerPos.x))) {
+                        // We just passed above the player going reasonably
+                        // fast. Go "whoosh".
+                        st.sounds.push('whoosh');
+                    }
                 }
                 else {
-                    weaponMomentum = V.lengthen(weaponMomentum,
-                                                -ACK.WEAPON_FRICTION);
+                    st.laughing = false;
+                    st.fastTime = 0;
+                    st.lastLaugh = 0;
                 }
-            }
-            if (tensorMomentum.isNonZero) {
-                var tensorMomentumThisFrame = V.scaleBy(tensorMomentum,
-                                                        delta / 1000);
-                tensorPos = V.move(tensorPos, tensorMomentumThisFrame);
-
-                // Apply friction.
-                var friction = ACK.TENSOR_FRICTION * delta/1000
-                if (tensorMomentum.length <= ACK.TENSOR_FRICTION) {
-                    tensorMomentum = new V(0, 0);
-                }
-                else {
-                    tensorMomentum = V.lengthen(tensorMomentum, -ACK.TENSOR_FRICTION);
-                }
-            }
-
-            // Enforce the tether, and translate that into new momentum.
-            var distVec = P.diff(st.playerPos, tensorPos);
-            if (distVec.length > ACK.TENSOR_TETHER_STRETCH_LENGTH) {
-                distVec = V.scaleTo(distVec,
-                                    distVec.length - ACK.TENSOR_TETHER_STRETCH_LENGTH);
-                tensorPos = P.move(tensorPos, distVec);
-                var distVecPerSec = V.scaleBy(distVec, 1000 / delta);
-                tensorMomentum = V.move(tensorMomentum, distVecPerSec);
-                if (tensorMomentum.length > ACK.MAX_WEAPON_MOMENTUM) {
-                    tensorMomentum = V.scaleTo(tensorMomentum,
-                                               ACK.MAX_WEAPON_MOMENTUM);
-                }
-            }
-            distVec = P.diff(tensorPos, weaponPos);
-            if (distVec.length > ACK.WEAPON_TETHER_STRETCH_LENGTH) {
-                distVec = V.scaleTo(distVec,
-                                    distVec.length - ACK.WEAPON_TETHER_STRETCH_LENGTH);
-                weaponPos = P.move(weaponPos, distVec);
-                var distVecPerSec = V.scaleBy(distVec, 1000 / delta);
-                weaponMomentum = V.move(weaponMomentum, distVecPerSec);
-                if (weaponMomentum.length > ACK.MAX_WEAPON_MOMENTUM) {
-                    weaponMomentum = V.scaleTo(weaponMomentum,
-                                               ACK.MAX_WEAPON_MOMENTUM);
-                }
-            }
-            // Is the tether stretched? Adjust momentum as needed.
-            distVec = P.diff(st.playerPos, tensorPos);
-            if (distVec.length > ACK.TENSOR_TETHER_LENGTH) {
-                var tetherMomentum = V.lengthen(distVec, -ACK.TENSOR_TETHER_LENGTH);
-                tetherMomentum = V.scaleBy(tetherMomentum,
-                                           ACK.TETHER_SNAP * 1000 / delta);
-                tensorMomentum = V.move(tensorMomentum, tetherMomentum);
-            }
-            distVec = P.diff(st.tensorPos, weaponPos);
-            if (distVec.length > ACK.WEAPON_TETHER_LENGTH) {
-                // Differs from one above - tensor and weapon each share
-                // the tension, moving toward eachother.
-                var tetherMomentum = V.lengthen(distVec, -ACK.WEAPON_TETHER_LENGTH);
-                tetherMomentum = V.scaleBy(tetherMomentum,
-                                           ACK.TETHER_SNAP * 1000 / delta);
-                var w = V.scaleBy(tetherMomentum, 0.5);
-                var t = V.scaleBy(tetherMomentum, -0.5);
-                weaponMomentum = V.move(weaponMomentum, w);
-                tensorMomentum = V.move(tensorMomentum, t);
-            }
-            // Save the new values back into state object.
-            st.weaponPos = weaponPos;
-            st.tensorPos = tensorPos;
-            st.tensorMomentum = tensorMomentum;
-            st.weaponMomentum = weaponMomentum;
-
-            // Track weapon momentum, for laughing purposes.
-            if (weaponMomentum.length >= ACK.LAUGH_SPEED) {
-                st.fastTime += delta;
-
-                if (st.fastTime >= ACK.LAUGH_MIN_TIME &&
-                    (st.lastLaugh == 0
-                     || st.fastTime - st.lastLaugh >= ACK.LAUGH_WAIT)) {
-                    st.laughing = true;
-                    st.lastLaugh = st.fastTime;
-                }
-
-                if (startWeaponPos.y < st.playerPos.y
-                         && weaponPos.y < st.playerPos.y
-                         && ((weaponPos.x < st.playerPos.x)
-                             != (startWeaponPos.x < st.playerPos.x))) {
-                    // We just passed above the player going reasonably
-                    // fast. Go "whoosh".
-                    st.sounds.push('whoosh');
-                }
-            }
+            } // player alive
             else {
-                st.laughing = false;
-                st.fastTime = 0;
-                st.lastLaugh = 0;
+                st.playerPos = new P(undefined, undefined);
+                st.weaponPos = st.playerPos;
+                var fadeOut = (st.gameElapsed - st.timeOfDeath)/ACK.MUSIC_FADEOUT;
+                if (fadeOut < 1) {
+                    AC.songInst.volume = 1 - fadeOut;
+                }
+                else {
+                    AC.songInst.stop();
+                    var cvs = AC.canvas;
+                    cvs.addEventListener('mouseup', AC.start);
+                    cvs.addEventListener('click', AC.start);
+                    cvs.addEventListener('touchstart', AC.start);
+                    cvs.addEventListener('touchmove', AC.start);
+                }
             }
 
             this.track.run(st);
@@ -437,8 +490,15 @@ var AntiCon = new (function() {
         };
 
         this.hurtPlayer = function() {
-            this.sounds.push('ouch');
-            this.invincible = ACK.HIT_INVINCIBILITY;
+            if (--this.playerHits <= 0) {
+                this.sounds.push('aw-man');
+                this.timeOfDeath = this.gameElapsed;
+                this.invincible = 1;
+            }
+            else {
+                this.sounds.push('ouch');
+                this.invincible = ACK.HIT_INVINCIBILITY;
+            }
         };
 
         this.addScore = function(score) {
@@ -722,6 +782,8 @@ var AntiCon = new (function() {
         K.INVINCIBLE_FLASHES = 5; // How many flashes during invincibility
 
         K.SCORE_LINGER = 1000;
+        K.PLAYER_HITS = 3;
+        K.MUSIC_FADEOUT = 3000;
     })();
     var ACK = AC.defs;
 })();
