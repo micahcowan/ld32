@@ -58,13 +58,15 @@ var AntiCon = new (function() {
 
             // Draw tether
             scr.beginPath();
-            // simple line, for now
-            scr.moveTo(st.playerPos.x, st.playerPos.y)
-            scr.lineTo(st.tensorPos.x, st.tensorPos.y);
-            scr.lineTo(st.weaponPos.x, st.weaponPos.y);
-            scr.lineWidth = 1.5;
-            scr.strokeStyle = 'silver';
-            scr.stroke();
+            if (false) {
+                // Uncomment this to see the tensor
+                scr.lineWidth = 1.5;
+                scr.moveTo(st.playerPos.x, st.playerPos.y)
+                scr.lineTo(st.tensorPos.x, st.tensorPos.y);
+                scr.lineTo(st.weaponPos.x, st.weaponPos.y);
+                scr.strokeStyle = 'silver';
+                scr.stroke();
+            }
             scr.beginPath();
             scr.moveTo(st.playerPos.x, st.playerPos.y)
             scr.quadraticCurveTo(st.tensorPos.x, st.tensorPos.y,
