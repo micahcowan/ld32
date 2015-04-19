@@ -157,10 +157,9 @@ var AntiCon = new (function() {
         S.mousePos  = startPos;
         S.playerPos = startPos;
         S.weaponPos = P.move(startPos, ACK.WEAPON_OFFSET);
-        S.tensorPos = P.move(startPos,
-                             V.scaleBy(ACK.WEAPON_OFFSET, ACK.TENSOR));
-        S.tensorMomentum = new V(0, 0);
-        S.weaponMomentum = new V(0, 0);
+        S.tensorPos = P.move(startPos, ACK.TENSOR_OFFSET);
+        S.tensorMomentum = ACK.WEAPON_MOMENTUM;
+        S.weaponMomentum = ACK.WEAPON_MOMENTUM;
 
         S.fastTime = 0;
         S.lastLaugh = 0;
@@ -485,12 +484,14 @@ var AntiCon = new (function() {
 
         K.PLAYER_START = new P(K.WIDTH/2, K.HEIGHT/2);
         K.WEAPON_OFFSET = new V(-50, 70);
+        K.WEAPON_MOMENTUM = new V(-400, -400);
 
         K.TETHER_LENGTH = 120;
         K.TETHER_STRETCH = 0.65; // fraction of tether length
         K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
         K.TETHER_SNAP = 0.1;
         K.TENSOR = 0.67; // fraction of tether length where tensor lives
+        K.TENSOR_OFFSET = V.scaleBy(K.WEAPON_OFFSET, K.TENSOR);
         K.TENSOR_TETHER_LENGTH = K.TETHER_LENGTH * K.TENSOR;
         K.TENSOR_TETHER_STRETCH_LENGTH = K.TENSOR_TETHER_LENGTH
             * (1 + K.TETHER_STRETCH);
