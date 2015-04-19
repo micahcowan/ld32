@@ -132,7 +132,6 @@ var AntiCon = new (function() {
         K.MUSIC_FADEOUT = 3000;
         K.SHOT_SPEED = 60;
         K.BULLET_RADIUS = 5;
-        K.ENEMY_SHOOT_TIME = 12000;
         K.BULLET_POINTS = 5;
     })();
 
@@ -633,12 +632,13 @@ var AntiCon = new (function() {
         };
     })();
 
-    AC.Enemy = function(_pos, _vel, _accel) {
+    AC.Enemy = function(_pos, _vel, _accel, _shoot) {
         this.position = _pos;
         this.velocity = _vel;
         this.accel = _accel;
         this.isDead = false;
-        this.shootTime = Math.random() * ACK.ENEMY_SHOOT_TIME;
+        this.shootTimeMax = _shoot;
+        this.shootTime = Math.random() * _shoot;
 
         if (_pos.y == 0) {
             this.position = P.move(_pos, 0, - this.height/2);
@@ -679,7 +679,7 @@ var AntiCon = new (function() {
             // Maybe fire?
             else if (this.shootTime <= 0) {
                 this.shootAtPlayer(state);
-                this.shootTime = Math.random() * ACK.ENEMY_SHOOT_TIME;
+                this.shootTime = Math.random() * this.shootTimeMax;
             }
         };
         this.draw = function(scr) {
@@ -831,8 +831,10 @@ var AntiCon = new (function() {
 
         // EVENTS
         this.events = [
-            [2000, 2, this.txfmA, AC.Enemy,
-             new V(ACK.WIDTH / 3, 0), new V(0, 80), new V(-5, 0)]
+            [2000, 6, this.txfmA, AC.Enemy,
+             new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 8000]
+          , [1000, 20, this.txfmA, AC.Enemy,
+             new V(ACK.WIDTH / 3, 0), new V(0, 100), new V(-8, 0), 5000]
         ];
 
         this.lastEventTime = 0;
