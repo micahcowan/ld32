@@ -24,6 +24,8 @@ var AntiCon = new (function() {
         scr.textAlign = 'center';
         scr.font = '24px Arial, Helvetica, sans-serif';
         scr.fillText("Click here to begin!", ACK.WIDTH / 2, ACK.HEIGHT / 2);
+        scr.font = '16px Arial, Helvetica, sans-serif';
+        scr.fillText("WARNING: game has music. Type 'M' to switch it off.", ACK.WIDTH / 2, ACK.HEIGHT / 2 + 36);
 
         // Listen for clickies.
         cvs.addEventListener('mouseup', AC.start);
@@ -143,6 +145,10 @@ var AntiCon = new (function() {
             // Clear screen
             scr.clearRect(0, 0, ACK.WIDTH, ACK.HEIGHT);
 
+            // Gradient
+            scr.fillStyle = ACG.bkgndGrad;
+            scr.fillRect(0, 0, ACK.WIDTH, ACK.HEIGHT);
+
             // Draw sprites
             for (var i=0; i < st.sprites.length; ++i) {
                 st.sprites[i].draw(scr);
@@ -194,6 +200,16 @@ var AntiCon = new (function() {
             scr.lineWidth = 2;
             scr.strokeStyle = 'black';
             scr.stroke();
+
+            // Draw text.
+            scr.font = '12px Arial, Helvetica, sans-serif';
+            var msg = "M: toggle music";
+            scr.lineWidth = 4;
+            scr.lineJoin = 'round';
+            scr.strokeStyle = 'white';
+            scr.strokeText(msg, ACK.WIDTH/2, 14);
+            scr.fillStyle = 'black';
+            scr.fillText(msg, ACK.WIDTH/2, 14);
         };
 
         ACG.handleMouseMove = function(ev) {
@@ -213,6 +229,13 @@ var AntiCon = new (function() {
             ev.stopPropagation();
             ev.preventDefault();
         };
+
+        var grad = ACG.bkgndGrad
+            = AC.screen.createRadialGradient(320, 500, 128, 200, 300, 600);
+        //grad.addColorStop(0, '#88a');
+        //grad.addColorStop(1, '#446');
+        grad.addColorStop(0, '#aac');
+        grad.addColorStop(1, '#668');
 
         AC.canvas.addEventListener('mousemove', ACG.handleMouseMove);
         AC.canvas.addEventListener('touchmove', ACG.handleMouseMove);
@@ -558,7 +581,8 @@ var AntiCon = new (function() {
                 scr.textAlign = 'center';
                 scr.font = '14px Arial, Helvetica, sans-serif';
                 scr.strokeStyle = 'WhiteSmoke';
-                scr.lineWidth = 8;
+                scr.lineWidth = 6;
+                scr.lineJoin = 'round';
                 scr.strokeText(this.points, 0, 0);
                 scr.fillStyle = 'black';
                 scr.fillText(this.points, 0, 0);
