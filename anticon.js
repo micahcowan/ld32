@@ -1,10 +1,21 @@
 "use strict";
 
+/*
+    TODO:
+
+    - Sound for player hit
+    - player death
+    - score
+    - more complex play/baddies
+    - graphics
+*/
+
 var AntiCon = new (function() {
     // Just a namespace.
 
-    var AC = this;
+    var AC = this; // Internal-only shorthand for AntiCon namespace
     AC.game = null;
+    AC.songInst = null;
 
     AC.init = function() {
         var cvs = AC.canvas = document.getElementById('anticonCvs');
@@ -35,9 +46,14 @@ var AntiCon = new (function() {
             var sound = AC.laughSnds[i];
             createjs.Sound.registerSound(sound + '.mp3', sound);
         }
-        var sound = 'whoosh';
-        createjs.Sound.registerSound(sound + '.mp3', sound);
-        createjs.Sound.defaultInterruptBehavior = createjs.INTERRUPT_EARLY;
+        var otherSnds = [
+            'whoosh'
+          , 'pop'
+        ];
+        for (var i=0; i < otherSnds.length; ++i) {
+            var sound = otherSnds[i];
+            createjs.Sound.registerSound(sound + '.mp3', sound);
+        }
 
         createjs.Sound.registerSound('anticon-intro.mp3', 'intro');
         createjs.Sound.registerSound('anticon-loop.mp3', 'loop');
@@ -56,9 +72,29 @@ var AntiCon = new (function() {
     AC.playIntro = function() {
         AC.songInst = createjs.Sound.play('intro');
         AC.songInst.on('complete', AC.playLoop);
+        window.addEventListener("keyup",
+            function(ev) { AC.handleKeyUp(ev); }, false);
     };
     AC.playLoop = function(ev) {
         AC.songInst = createjs.Sound.play('loop', {loop: -1});
+    };
+
+    AC.handleKeyUp = function(ev) {
+        var k = getKProp(ev);
+        var music = AC.songInst;
+        var MUSIC_KEYS = ['M', 'm', 'U+004D'];
+        if (MUSIC_KEYS.indexOf(k) != -1 && music != undefined) {
+            music.pause() || music.resume();
+        }
+    };
+
+    // Finds the right property to look up key names.
+    function getKProp(ev) {
+        var k = ev.key;
+        if (k === undefined) {
+            k = ev.keyIdentifier;
+        }
+        return k;
     }
 
     AC.start = function(ev) {
@@ -481,11 +517,10 @@ var AntiCon = new (function() {
             }
             else if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
                 // Check collision
-                // FIXME: just checking weapon point, should check full
-                // radius probably.
                 if (AC.isCircleInRect(state.weaponPos,
                                       ACK.WEAPON_RADIUS, this.rect)) {
                     this.killed = ACK.SCORE_LINGER;
+                    createjs.Sound.play('pop');
                 }
             }
         };
