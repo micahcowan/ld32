@@ -13,6 +13,7 @@ var AntiCon = new (function() {
     var AC = this; // Internal-only shorthand for AntiCon namespace
     AC.game = null;
     AC.songInst = null;
+    AC.highScore = 0;
 
     AC.Point = function(_x, _y) {
         var _length = undefined; // Used in "get" clojure for "length" prop.
@@ -349,24 +350,40 @@ var AntiCon = new (function() {
             }
 
             // Draw text.
+            scr.strokeStyle = 'white';
+            scr.fillStyle = 'black';
+
             scr.font = '12px Arial, Helvetica, sans-serif';
             var msg = "M: toggle music";
             scr.lineWidth = 4;
             scr.lineJoin = 'round';
-            scr.strokeStyle = 'white';
             scr.textAlign = 'center';
             scr.strokeText(msg, ACK.WIDTH/2, 14);
-            scr.fillStyle = 'black';
             scr.fillText(msg, ACK.WIDTH/2, 14);
 
-            scr.font = '18pt Arial, Helvetica, sans-serif';
-            scr.lineWidth = 7;
-            var x = 10;
-            var y = 24;
-            scr.textAlign = 'left';
-            scr.strokeText(st.score, x, y);
-            scr.fillText(st.score, x, y);
+            // score
+            if (st.score > 0) {
+                scr.font = '18pt Arial, Helvetica, sans-serif';
+                scr.lineWidth = 7;
+                var x = 10;
+                var y = 24;
+                scr.textAlign = 'left';
+                scr.strokeText(st.score, x, y);
+                scr.fillText(st.score, x, y);
+            }
 
+            // highscore
+            if (AC.highScore > 0) {
+                scr.font = '18pt Arial, Helvetica, sans-serif';
+                scr.lineWidth = 7;
+                var x = ACK.WIDTH/2 - 60;
+                var y = 24;
+                scr.textAlign = 'right';
+                scr.strokeText(AC.highScore, x, y);
+                scr.fillText(AC.highScore, x, y);
+            }
+
+            // Hit points remaining
             scr.font = '18pt Arial, Helvetica, sans-serif';
             scr.lineWidth = 7;
             var x = ACK.WIDTH - 10;
@@ -629,6 +646,8 @@ var AntiCon = new (function() {
 
         this.addScore = function(score) {
             this.score += score;
+            if (this.score > AC.highScore)
+                AC.highScore = this.score;
         };
     })();
 
