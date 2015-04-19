@@ -14,6 +14,129 @@ var AntiCon = new (function() {
     AC.game = null;
     AC.songInst = null;
 
+    AC.Point = function(_x, _y) {
+        var _length = undefined; // Used in "get" clojure for "length" prop.
+        Object.defineProperties(this, {
+            x: {
+                value: _x
+              , writable: false
+              , configurable: false
+            }
+          , y: {
+                value: _y
+              , writable: false
+              , configurable: false
+            }
+          , length: {
+                get: function() {
+                    if (_length === undefined) {
+                        // Pythagorean theorem
+                        _length = Math.sqrt(_x * _x + _y * _y);
+                    }
+                    return _length;
+                }
+            }
+          , isNonZero: {
+                get: function() {
+                    return _x != 0 || _y != 0;
+                }
+            }
+        });
+    };
+    AC.Point.prototype = {};
+    AC.Point.prototype.constructor = AC.Point;
+    AC.Point.prototype.create = function() {
+        return new this.constructor(arguments);
+    };
+
+    AC.Point.move = function() {
+        var pt, xOff, yOff;
+        if (arguments.length == 3) {
+            pt = arguments[0];
+            xOff = arguments[1];
+            yOff = arguments[2];
+        }
+        else if (arguments.length == 2) {
+            // second arg is a vector
+            pt = arguments[0];
+            xOff = arguments[1].x;
+            yOff = arguments[1].y;
+        }
+        else {
+            throw ("Bad number of args (" + arguments.length
+                   + ") to AntiCon.Point.move");
+        }
+        return new AC.Point(pt.x + xOff, pt.y + yOff);
+    };
+
+    // FIXME (make it a separate class that inherits?)
+    AC.Vector = AC.Point;
+    AC.Vector.diff = function(vecA, vecB) {
+        return new AC.Vector(vecA.x - vecB.x, vecA.y - vecB.y);
+    };
+    AC.Vector.scaleBy = function(vec, scale) {
+        return new AC.Vector(vec.x * scale, vec.y * scale);
+    };
+    AC.Vector.scaleTo = function(vec, length) {
+        return AC.Vector.scaleBy(vec, length / vec.length);
+    };
+    AC.Vector.lengthen = function(vec, lengthDelta) {
+        var remove = AC.Vector.scaleTo(vec, lengthDelta);
+        return AC.Vector.move(vec, remove);
+    };
+
+    var P = AC.Point;
+    var V = AC.Vector;
+
+    AC.defs = new (function() {
+        var K = this;
+        K.WIDTH = 640;
+        K.HEIGHT = 480;
+        K.FRAMES_PER_SEC = 50;
+        K.MSECS_PER_FRAME = 1000 / K.FRAMES_PER_SEC;
+        K.MAX_MSECS_PER_FRAME = K.MSECS_PER_FRAME * 3;
+
+        K.PLAYER_RADIUS = 14;
+        K.WEAPON_RADIUS = 12;
+
+        K.PLAYER_START = new P(K.WIDTH/2, K.HEIGHT/2);
+        K.WEAPON_OFFSET = new V(-50, 70);
+        K.WEAPON_MOMENTUM = new V(-400, -400);
+
+        K.TETHER_LENGTH = 100;
+        K.TETHER_STRETCH = 0.65; // fraction of tether length
+        K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
+        K.TETHER_SNAP = 0.1;
+        K.TENSOR = 0.67; // fraction of tether length where tensor lives
+        K.TENSOR_OFFSET = V.scaleBy(K.WEAPON_OFFSET, K.TENSOR);
+        K.TENSOR_TETHER_LENGTH = K.TETHER_LENGTH * K.TENSOR;
+        K.TENSOR_TETHER_STRETCH_LENGTH = K.TENSOR_TETHER_LENGTH
+            * (1 + K.TETHER_STRETCH);
+        K.WEAPON_TETHER_LENGTH = K.TETHER_LENGTH - K.TENSOR_TETHER_LENGTH;
+        K.WEAPON_TETHER_STRETCH_LENGTH = K.WEAPON_TETHER_LENGTH
+            * (1 + K.TETHER_STRETCH);
+        K.MAX_WEAPON_MOMENTUM = 1200; // pixels per second.
+        K.WEAPON_FRICTION = 17; // pixels per second^2.
+        K.TENSOR_FRICTION = 24; // pixels per second^2.
+        K.MIN_WEAPON_SPEED = 400;
+
+        K.LAUGH_SPEED = K.MAX_WEAPON_MOMENTUM * 3/4;
+        K.LAUGH_MIN_TIME = 1500;
+        K.LAUGH_WAIT = 5000;
+
+        K.HIT_INVINCIBILITY = 1000; // ms spent invincible after being hit
+        K.INVINCIBLE_FLASHES = 5; // How many flashes during invincibility
+
+        K.SCORE_LINGER = 1000;
+        K.PLAYER_HITS = 3;
+        K.MUSIC_FADEOUT = 3000;
+        K.SHOT_SPEED = 60;
+        K.BULLET_RADIUS = 5;
+        K.ENEMY_SHOOT_TIME = 12000;
+        K.BULLET_POINTS = 5;
+    })();
+
+    var ACK = AC.defs;
     AC.init = function() {
         var cvs = AC.canvas = document.getElementById('anticonCvs');
         var scr = AC.screen = cvs.getContext("2d");
@@ -73,8 +196,7 @@ var AntiCon = new (function() {
     AC.playIntro = function() {
         AC.songInst = createjs.Sound.play('intro');
         AC.songInst.on('complete', AC.playLoop);
-        window.addEventListener("keyup",
-            function(ev) { AC.handleKeyUp(ev); }, false);
+        window.addEventListener("keyup", AC.handleKeyUp, false);
     };
     AC.playLoop = function(ev) {
         AC.songInst = createjs.Sound.play('loop', {loop: -1});
@@ -134,6 +256,8 @@ var AntiCon = new (function() {
             while (ACG.state.sounds.length != 0) {
                 var sound = ACG.state.sounds.pop();
                 var inst = createjs.Sound.play(sound);
+                if (sound == 'aw-man')
+                    inst.volume = 0.6;
             }
             ACG.tmout = window.setTimeout(ACG.update, ACK.MSECS_PER_FRAME);
         };
@@ -509,103 +633,6 @@ var AntiCon = new (function() {
         };
     })();
 
-    AC.Point = function(_x, _y) {
-        var _length = undefined; // Used in "get" clojure for "length" prop.
-        Object.defineProperties(this, {
-            x: {
-                value: _x
-              , writable: false
-              , configurable: false
-            }
-          , y: {
-                value: _y
-              , writable: false
-              , configurable: false
-            }
-          , length: {
-                get: function() {
-                    if (_length === undefined) {
-                        // Pythagorean theorem
-                        _length = Math.sqrt(_x * _x + _y * _y);
-                    }
-                    return _length;
-                }
-            }
-          , isNonZero: {
-                get: function() {
-                    return _x != 0 || _y != 0;
-                }
-            }
-        });
-    };
-    AC.Point.prototype = {};
-    AC.Point.prototype.constructor = AC.Point;
-    AC.Point.prototype.create = function() {
-        return new this.constructor(arguments);
-    };
-
-    AC.Point.move = function() {
-        var pt, xOff, yOff;
-        if (arguments.length == 3) {
-            pt = arguments[0];
-            xOff = arguments[1];
-            yOff = arguments[2];
-        }
-        else if (arguments.length == 2) {
-            // second arg is a vector
-            pt = arguments[0];
-            xOff = arguments[1].x;
-            yOff = arguments[1].y;
-        }
-        else {
-            throw ("Bad number of args (" + arguments.length
-                   + ") to AntiCon.Point.move");
-        }
-        return new AC.Point(pt.x + xOff, pt.y + yOff);
-    };
-
-    // FIXME (make it a separate class that inherits?)
-    AC.Vector = AC.Point;
-    AC.Vector.diff = function(vecA, vecB) {
-        return new AC.Vector(vecA.x - vecB.x, vecA.y - vecB.y);
-    };
-    AC.Vector.scaleBy = function(vec, scale) {
-        return new AC.Vector(vec.x * scale, vec.y * scale);
-    };
-    AC.Vector.scaleTo = function(vec, length) {
-        return AC.Vector.scaleBy(vec, length / vec.length);
-    };
-    AC.Vector.lengthen = function(vec, lengthDelta) {
-        var remove = AC.Vector.scaleTo(vec, lengthDelta);
-        return AC.Vector.move(vec, remove);
-    };
-
-    var P = AC.Point;
-    var V = AC.Vector;
-
-    // Object class for generating game events (like enemies)
-    AC.LevelTrack = function() {
-        this.nextEvent = [1000, AC.Enemy, new V(ACK.WIDTH / 3, 0),
-                          new V(0, 80), new V(-5, 0)];
-    };
-    AC.LevelTrack.prototype = new (function() {
-        this.run = function(state) {
-            var ev = this.nextEvent;
-            if (ev !== null && state.gameElapsed >= ev[0]) {
-                var ctor = ev[1];
-                ctor = ctor.bind.apply(ctor, [null].concat(ev.slice(2)));
-                var thing = new ctor();
-                state.addSprite(thing);
-                thing.update(state, state.gameElapsed - ev[0]);
-
-                // XXX
-                this.nextEvent[0] += 1000;
-                this.nextEvent[2] = new V(ACK.WIDTH - ev[2].x, 0);
-                this.nextEvent[4] = new V(-ev[4].x, 0);
-            }
-        };
-    })();
-
     AC.Enemy = function(_pos, _vel, _accel) {
         this.position = _pos;
         this.velocity = _vel;
@@ -717,7 +744,12 @@ var AntiCon = new (function() {
             this.position = P.move(this.position, heading);
 
             var toWeap = V.diff(this.position, state.weaponPos).length;
-            if (toWeap <= ACK.BULLET_RADIUS + ACK.WEAPON_RADIUS) {
+            if (!AC.isCircleInRect(this.position, ACK.BULLET_RADIUS,
+                                  {t: 0, l: 0, b: ACK.HEIGHT, r: ACK.WIDTH})) {
+                // Off the screen.
+                this.isDead = true;
+            }
+            else if (toWeap <= ACK.BULLET_RADIUS + ACK.WEAPON_RADIUS) {
                 state.addScore(ACK.BULLET_POINTS);
                 this.isDead = true;
             }
@@ -786,54 +818,55 @@ var AntiCon = new (function() {
                 && pos.y >= rect.t && pos.y <= rect.b);
     };
 
-    AC.defs = new (function() {
-        var K = this;
-        K.WIDTH = 640;
-        K.HEIGHT = 480;
-        K.FRAMES_PER_SEC = 50;
-        K.MSECS_PER_FRAME = 1000 / K.FRAMES_PER_SEC;
-        K.MAX_MSECS_PER_FRAME = K.MSECS_PER_FRAME * 3;
+    // Object class for generating game events (like enemies)
+    AC.LevelTrack = function() {
+    };
+    AC.LevelTrack.prototype = new (function() {
+        // Event: delay, repeat times, transform, constructor, args
+        this.txfmA = function(ev) {
+                ev[4] = new V(ACK.WIDTH - ev[4].x, 0);
+                ev[6] = new V(-ev[6].x, 0);
+                return ev;
+        };
 
-        K.PLAYER_RADIUS = 14;
-        K.WEAPON_RADIUS = 12;
+        // EVENTS
+        this.events = [
+            [2000, 2, this.txfmA, AC.Enemy,
+             new V(ACK.WIDTH / 3, 0), new V(0, 80), new V(-5, 0)]
+        ];
 
-        K.PLAYER_START = new P(K.WIDTH/2, K.HEIGHT/2);
-        K.WEAPON_OFFSET = new V(-50, 70);
-        K.WEAPON_MOMENTUM = new V(-400, -400);
+        this.lastEventTime = 0;
+        this.run = function(state) {
+            var ev = this.nextEvent;
+            var elapsed = state.gameElapsed - this.lastEventTime;
+            if (ev !== null && elapsed >= ev[0]) {
+                this.lastEventTime = state.gameElapsed;
+                var ctor = ev[3];
+                ctor = ctor.bind.apply(ctor, [null].concat(ev.slice(4)));
+                var thing = new ctor();
+                state.addSprite(thing);
+                thing.update(state, elapsed - ev[0]);
+                this.advanceEvent();
+            }
+        };
 
-        K.TETHER_LENGTH = 100;
-        K.TETHER_STRETCH = 0.65; // fraction of tether length
-        K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
-        K.TETHER_SNAP = 0.1;
-        K.TENSOR = 0.67; // fraction of tether length where tensor lives
-        K.TENSOR_OFFSET = V.scaleBy(K.WEAPON_OFFSET, K.TENSOR);
-        K.TENSOR_TETHER_LENGTH = K.TETHER_LENGTH * K.TENSOR;
-        K.TENSOR_TETHER_STRETCH_LENGTH = K.TENSOR_TETHER_LENGTH
-            * (1 + K.TETHER_STRETCH);
-        K.WEAPON_TETHER_LENGTH = K.TETHER_LENGTH - K.TENSOR_TETHER_LENGTH;
-        K.WEAPON_TETHER_STRETCH_LENGTH = K.WEAPON_TETHER_LENGTH
-            * (1 + K.TETHER_STRETCH);
-        K.MAX_WEAPON_MOMENTUM = 1200; // pixels per second.
-        K.WEAPON_FRICTION = 17; // pixels per second^2.
-        K.TENSOR_FRICTION = 24; // pixels per second^2.
-        K.MIN_WEAPON_SPEED = 400;
-
-        K.LAUGH_SPEED = K.MAX_WEAPON_MOMENTUM * 3/4;
-        K.LAUGH_MIN_TIME = 1500;
-        K.LAUGH_WAIT = 5000;
-
-        K.HIT_INVINCIBILITY = 1000; // ms spent invincible after being hit
-        K.INVINCIBLE_FLASHES = 5; // How many flashes during invincibility
-
-        K.SCORE_LINGER = 1000;
-        K.PLAYER_HITS = 3;
-        K.MUSIC_FADEOUT = 3000;
-        K.SHOT_SPEED = 60;
-        K.BULLET_RADIUS = 5;
-        K.ENEMY_SHOOT_TIME = 15000;
-        K.BULLET_POINTS = 5;
+        this.eventIdx = 0;
+        this.nextEvent = this.events[0].slice();
+        this.advanceEvent = function() {
+            var ev = this.nextEvent.slice();
+            --ev[1];
+            if (ev[1] <= 0) {
+                if (++this.eventIdx >= this.events.length)
+                    this.eventIdx = 0;
+                ev = this.events[this.eventIdx].slice();
+            }
+            else {
+                // transform
+                ev = ev[2](ev);
+            }
+            this.nextEvent = ev;
+        };
     })();
-    var ACK = AC.defs;
 })();
 
 window.addEventListener('load', AntiCon.init);
