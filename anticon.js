@@ -33,6 +33,7 @@ var AntiCon = new (function() {
             var sound = AC.laughSnds[i];
             createjs.Sound.registerSound(sound + '.ogg', sound);
         }
+        createjs.Sound.alternateExtensions = ['mp3'];
     };
 
     AC.start = function(ev) {
