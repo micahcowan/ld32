@@ -21,6 +21,8 @@ var AntiCon = new (function() {
         cvs.addEventListener('touchmove', AC.start);
 
         // Start loading sounds.
+        createjs.Sound.registerPlugins([createjs.WebAudioPlugin,
+                                        createjs.HTMLAudioPlugin]);
         AC.laughSnds = [
             'high-whoo'
           , 'laugh1'
@@ -35,8 +37,29 @@ var AntiCon = new (function() {
         }
         var sound = 'whoosh';
         createjs.Sound.registerSound(sound + '.mp3', sound);
-        createjs.defaultInterruptBehavior = createjs.INTERRUPT_EARLY;
+        createjs.Sound.defaultInterruptBehavior = createjs.INTERRUPT_EARLY;
+
+        createjs.Sound.registerSound('anticon-intro.mp3', 'intro');
+        createjs.Sound.registerSound('anticon-loop.mp3', 'loop');
+        createjs.Sound.on('fileload', AC.handleLoad);
     };
+
+    AC.songLoaded = 0;
+    AC.handleLoad = function(ev) {
+        if (ev.id == 'intro' || ev.id == 'loop')
+            AC.songLoaded++;
+        if (AC.songLoaded == 2 && AC.game !== null) {
+            AC.playIntro();
+        }
+    };
+
+    AC.playIntro = function() {
+        AC.songInst = createjs.Sound.play('intro');
+        AC.songInst.on('complete', AC.playLoop);
+    };
+    AC.playLoop = function(ev) {
+        AC.songInst = createjs.Sound.play('loop', {loop: -1});
+    }
 
     AC.start = function(ev) {
         var cvs = AC.canvas;
@@ -52,6 +75,10 @@ var AntiCon = new (function() {
     AC.Game = function(ev) {
         var ACG = this;
 
+        if (AC.songLoaded == 2) {
+            AC.playIntro();
+        }
+
         ACG.state = new AC.GameState(ev);
 
         // Function, not a method. Called via timeout.
@@ -61,11 +88,13 @@ var AntiCon = new (function() {
             if (ACG.state.laughing) {
                 ACG.state.laughing = false;
                 var i = Math.floor( Math.random() * AC.laughSnds.length );
-                createjs.Sound.play(AC.laughSnds[i]);
+                var inst = createjs.Sound.play(AC.laughSnds[i]);
+                inst.volume = 0.40;
             }
             if (ACG.state.whooshing) {
                 ACG.state.whooshing = false;
-                createjs.Sound.play('whoosh');
+                var inst = createjs.Sound.play('whoosh');
+                inst.volume = 0.8;
             }
             ACG.tmout = window.setTimeout(ACG.update, ACK.MSECS_PER_FRAME);
         };
