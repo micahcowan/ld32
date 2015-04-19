@@ -3,8 +3,8 @@
 /*
     TODO:
 
-    - more complex play/baddies
-    - graphics
+    - baddies in from side with bullets burst
+    - baddies loop around center
 */
 
 var AntiCon = new (function() {
@@ -490,6 +490,9 @@ var AntiCon = new (function() {
         };
 
         this.hurtPlayer = function() {
+            if (this.invincible != 0)
+                return;
+
             if (--this.playerHits <= 0) {
                 this.sounds.push('aw-man');
                 this.timeOfDeath = this.gameElapsed;
@@ -608,6 +611,7 @@ var AntiCon = new (function() {
         this.velocity = _vel;
         this.accel = _accel;
         this.isDead = false;
+        this.shootTime = Math.random() * ACK.ENEMY_SHOOT_TIME;
 
         if (_pos.y == 0) {
             this.position = P.move(_pos, 0, - this.height/2);
@@ -619,6 +623,7 @@ var AntiCon = new (function() {
             this.position = P.move(this.position, frameVel);
             var frameAccel = V.scaleBy(this.accel, delta / 1000);
             this.velocity = V.move(this.velocity, frameAccel);
+            this.shootTime -= delta;
             if (this.position.y > ACK.HEIGHT + this.height/2) {
                 this.isDead = true;
             }
@@ -627,26 +632,27 @@ var AntiCon = new (function() {
                 if (this.killed <= 0)
                     this.isDead = true;
             }
-            else {
-                if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
-                    // Check collision
-                    if (AC.isCircleInRect(state.weaponPos,
-                                          ACK.WEAPON_RADIUS, this.rect)) {
-                        state.sounds.push('pop');
-                        this.killed = ACK.SCORE_LINGER;
-                        state.addScore(this.points);
-                    }
-                }
-
-                // Check player collision
-                if (state.invincible == 0
-                    && AC.isCircleInRect(state.playerPos, ACK.PLAYER_RADIUS,
+            // Check player collision
+            else if (AC.isCircleInRect(state.playerPos, ACK.PLAYER_RADIUS,
                                          this.rect)) {
                     state.hurtPlayer();
                     // Kamikaze
                     this.killed = ACK.SCORE_LINGER;
                     state.addScore(this.points);
+            }
+            // Check weapon collision
+            else if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
+                if (AC.isCircleInRect(state.weaponPos,
+                                      ACK.WEAPON_RADIUS, this.rect)) {
+                    state.sounds.push('pop');
+                    this.killed = ACK.SCORE_LINGER;
+                    state.addScore(this.points);
                 }
+            }
+            // Maybe fire?
+            else if (this.shootTime <= 0) {
+                this.shootAtPlayer(state);
+                this.shootTime = Math.random() * ACK.ENEMY_SHOOT_TIME;
             }
         };
         this.draw = function(scr) {
@@ -672,7 +678,12 @@ var AntiCon = new (function() {
                 scr.strokeStyle = 'black';
                 scr.strokeRect.apply(scr, rect);
             }
-        }
+        };
+        this.shootAtPlayer = function(state) {
+            var vec = V.diff(state.playerPos, this.position);
+            vec = V.scaleTo(vec, ACK.SHOT_SPEED);
+            state.addSprite(new AC.Bullet(this.position, vec));
+        };
         this.points = 100;
         this.position = new P(0,0);
         this.velocity = new V(0,0);
@@ -692,6 +703,39 @@ var AntiCon = new (function() {
                      };
                  }
         });
+    })();
+
+    AC.Bullet = function(_pos, _vec) {
+        this.position = _pos;
+        this.heading = _vec;
+    };
+    AC.Bullet.prototype = new (function() {
+        this.isDead = false;
+
+        this.update = function(state, delta) {
+            var heading = V.scaleBy(this.heading, delta/1000);
+            this.position = P.move(this.position, heading);
+
+            var toWeap = V.diff(this.position, state.weaponPos).length;
+            if (toWeap <= ACK.BULLET_RADIUS + ACK.WEAPON_RADIUS) {
+                state.addScore(ACK.BULLET_POINTS);
+                this.isDead = true;
+            }
+            else {
+                var toPlayer = V.diff(this.position, state.playerPos).length;
+                if (toPlayer <= ACK.BULLET_RADIUS + ACK.PLAYER_RADIUS) {
+                    state.addScore(ACK.BULLET_POINTS);
+                    this.isDead = true;
+                    state.hurtPlayer();
+                }
+            }
+        };
+        this.draw = function(scr) {
+                scr.beginPath();
+                scr.arc(this.position.x, this.position.y, ACK.BULLET_RADIUS, 0, 2 * Math.PI);
+                scr.fillStyle = 'magenta';
+                scr.fill();
+        };
     })();
 
     // Utility function for collision detection
@@ -757,7 +801,7 @@ var AntiCon = new (function() {
         K.WEAPON_OFFSET = new V(-50, 70);
         K.WEAPON_MOMENTUM = new V(-400, -400);
 
-        K.TETHER_LENGTH = 120;
+        K.TETHER_LENGTH = 100;
         K.TETHER_STRETCH = 0.65; // fraction of tether length
         K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
         K.TETHER_SNAP = 0.1;
@@ -784,6 +828,10 @@ var AntiCon = new (function() {
         K.SCORE_LINGER = 1000;
         K.PLAYER_HITS = 3;
         K.MUSIC_FADEOUT = 3000;
+        K.SHOT_SPEED = 60;
+        K.BULLET_RADIUS = 5;
+        K.ENEMY_SHOOT_TIME = 15000;
+        K.BULLET_POINTS = 5;
     })();
     var ACK = AC.defs;
 })();
