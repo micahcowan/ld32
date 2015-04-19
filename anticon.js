@@ -106,8 +106,14 @@ var AntiCon = new (function() {
             scr.arc(st.weaponPos.x, st.weaponPos.y, ACK.WEAPON_RADIUS, 0, 2 * Math.PI);
             scr.fillStyle = 'red';
             scr.fill();
-            scr.lineWidth = 1.5;
-            scr.strokeStyle = 'black';
+            if (st.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
+                scr.lineWidth = 3.5;
+                scr.strokeStyle = 'yellow';
+            }
+            else {
+                scr.lineWidth = 1.5;
+                scr.strokeStyle = 'black';
+            }
             scr.stroke();
 
             // Draw player
