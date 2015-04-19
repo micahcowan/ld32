@@ -662,6 +662,9 @@ var AntiCon = new (function() {
         if (_pos.y == 0) {
             this.position = P.move(_pos, 0, - this.height/2);
         }
+        if (_pos.x == ACK.WIDTH) {
+            this.position = P.move(_pos, 0, - this.width/2);
+        }
     };
     AC.Enemy.prototype = new (function() {
         this.update = function(state, delta) {
@@ -697,8 +700,8 @@ var AntiCon = new (function() {
             }
             // Maybe fire?
             else if (this.shootTime <= 0) {
-                this.shootAtPlayer(state);
                 this.shootTime = Math.random() * this.shootTimeMax;
+                this.shootAtPlayer(state);
             }
         };
         this.draw = function(scr) {
@@ -750,6 +753,32 @@ var AntiCon = new (function() {
                  }
         });
     })();
+
+    AC.BurstEnemy = function(p, v, a, shoot) {
+        AC.Enemy.call(this, p, v, a, shoot);
+        this.shootTime = shoot;
+    };
+    AC.BurstEnemy.prototypeClass = function() {
+        this.points = 300;
+        this.shootAtPlayer = function(state) {
+            this.shootTime = this.shootTimeMax;
+
+            // Bullet spray!
+            var tau = 2 * Math.PI;
+            var numBullets = 16;
+            var arc = tau / numBullets;
+            for (var dir=0; dir <= tau; dir += arc) {
+                var vec = new V(
+                    ACK.SHOT_SPEED * Math.sin(dir)
+                  , ACK.SHOT_SPEED * Math.cos(dir)
+                );
+                var bullet = new AC.Bullet(this.position, vec);
+                state.addSprite(bullet);
+            }
+        }
+    };
+    AC.BurstEnemy.prototypeClass.prototype = AC.Enemy.prototype;
+    AC.BurstEnemy.prototype = new AC.BurstEnemy.prototypeClass();
 
     AC.Bullet = function(_pos, _vec) {
         this.position = _pos;
@@ -854,6 +883,10 @@ var AntiCon = new (function() {
              new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 8000]
           , [1000, 20, this.txfmA, AC.Enemy,
              new V(ACK.WIDTH / 3, 0), new V(0, 100), new V(-8, 0), 5000]
+          , [1000, 1, this.txfmA, AC.BurstEnemy,
+             new V(ACK.WIDTH, ACK.HEIGHT / 4), new V(-40, 0), new V(0, 0), 2500]
+          , [2000, 6, this.txfmA, AC.Enemy,
+             new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 8000]
         ];
 
         this.lastEventTime = 0;
@@ -871,8 +904,9 @@ var AntiCon = new (function() {
             }
         };
 
-        this.eventIdx = 0;
-        this.nextEvent = this.events[0].slice();
+        // this.eventIdx = 0;
+        this.eventIdx = 2;
+        this.nextEvent = this.events[this.eventIdx].slice();
         this.advanceEvent = function() {
             var ev = this.nextEvent.slice();
             --ev[1];
