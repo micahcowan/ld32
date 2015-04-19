@@ -49,6 +49,8 @@ var AntiCon = new (function() {
         var otherSnds = [
             'whoosh'
           , 'pop'
+          , 'ouch'
+          , 'aw-man'
         ];
         for (var i=0; i < otherSnds.length; ++i) {
             var sound = otherSnds[i];
@@ -127,10 +129,9 @@ var AntiCon = new (function() {
                 var inst = createjs.Sound.play(AC.laughSnds[i]);
                 inst.volume = 0.40;
             }
-            if (ACG.state.whooshing) {
-                ACG.state.whooshing = false;
-                var inst = createjs.Sound.play('whoosh');
-                inst.volume = 0.8;
+            while (ACG.state.sounds.length != 0) {
+                var sound = ACG.state.sounds.pop();
+                var inst = createjs.Sound.play(sound);
             }
             ACG.tmout = window.setTimeout(ACG.update, ACK.MSECS_PER_FRAME);
         };
@@ -184,7 +185,11 @@ var AntiCon = new (function() {
             // Draw player
             scr.beginPath();
             scr.arc(st.playerPos.x, st.playerPos.y, ACK.PLAYER_RADIUS, 0, 2 * Math.PI);
-            scr.fillStyle = 'green';
+            var cycle = ACK.HIT_INVINCIBILITY / ACK.INVINCIBLE_FLASHES;
+            if (st.invincible > 0 && (st.invincible % cycle)/cycle > 0.5)
+                scr.fillStyle = 'silver';
+            else
+                scr.fillStyle = 'green';
             scr.fill();
             scr.lineWidth = 2;
             scr.strokeStyle = 'black';
@@ -242,7 +247,8 @@ var AntiCon = new (function() {
         S.fastTime = 0;
         S.lastLaugh = 0;
         S.laughing = false;
-        S.whooshing = false;
+        S.sounds = [];
+        S.invincible = 0;
 
         this.sprites = [];
         this.track = new AC.LevelTrack();
@@ -261,6 +267,12 @@ var AntiCon = new (function() {
                 delta = ACK.MAX_MSECS_PER_FRAME;
             }
             st.gameElapsed += delta;
+
+            if (st.invincible > 0) {
+                st.invincible -= delta;
+                if (st.invincible < 0)
+                    st.invincible = 0;
+            }
 
             // TODO: speed limit the player slightly?
             st.playerPos = st.mousePos;
@@ -371,12 +383,11 @@ var AntiCon = new (function() {
                              != (startWeaponPos.x < st.playerPos.x))) {
                     // We just passed above the player going reasonably
                     // fast. Go "whoosh".
-                    st.whooshing = true;
+                    st.sounds.push('whoosh');
                 }
             }
             else {
                 st.laughing = false;
-                st.whooshing = false;
                 st.fastTime = 0;
                 st.lastLaugh = 0;
             }
@@ -391,6 +402,11 @@ var AntiCon = new (function() {
                 else
                     ++i;
             }
+        };
+
+        this.hurtPlayer = function() {
+            this.sounds.push('ouch');
+            this.invincible = ACK.HIT_INVINCIBILITY;
         };
     })();
 
@@ -515,12 +531,23 @@ var AntiCon = new (function() {
                 if (this.killed <= 0)
                     this.isDead = true;
             }
-            else if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
-                // Check collision
-                if (AC.isCircleInRect(state.weaponPos,
-                                      ACK.WEAPON_RADIUS, this.rect)) {
+            else {
+                if (state.weaponMomentum.length >= ACK.MIN_WEAPON_SPEED) {
+                    // Check collision
+                    if (AC.isCircleInRect(state.weaponPos,
+                                          ACK.WEAPON_RADIUS, this.rect)) {
+                        this.killed = ACK.SCORE_LINGER;
+                        createjs.Sound.play('pop');
+                    }
+                }
+
+                // Check player collision
+                if (state.invincible == 0
+                    && AC.isCircleInRect(state.playerPos, ACK.PLAYER_RADIUS,
+                                         this.rect)) {
+                    state.hurtPlayer();
+                    // Kamikaze
                     this.killed = ACK.SCORE_LINGER;
-                    createjs.Sound.play('pop');
                 }
             }
         };
@@ -651,6 +678,9 @@ var AntiCon = new (function() {
         K.LAUGH_SPEED = K.MAX_WEAPON_MOMENTUM * 3/4;
         K.LAUGH_MIN_TIME = 1500;
         K.LAUGH_WAIT = 5000;
+
+        K.HIT_INVINCIBILITY = 1000; // ms spent invincible after being hit
+        K.INVINCIBLE_FLASHES = 5; // How many flashes during invincibility
 
         K.SCORE_LINGER = 1000;
     })();
