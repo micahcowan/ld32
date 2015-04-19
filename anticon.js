@@ -33,6 +33,9 @@ var AntiCon = new (function() {
             var sound = AC.laughSnds[i];
             createjs.Sound.registerSound(sound + '.mp3', sound);
         }
+        var sound = 'whoosh';
+        createjs.Sound.registerSound(sound + '.mp3', sound);
+        createjs.defaultInterruptBehavior = createjs.INTERRUPT_EARLY;
     };
 
     AC.start = function(ev) {
@@ -59,6 +62,10 @@ var AntiCon = new (function() {
                 ACG.state.laughing = false;
                 var i = Math.floor( Math.random() * AC.laughSnds.length );
                 createjs.Sound.play(AC.laughSnds[i]);
+            }
+            if (ACG.state.whooshing) {
+                ACG.state.whooshing = false;
+                createjs.Sound.play('whoosh');
             }
             ACG.tmout = window.setTimeout(ACG.update, ACK.MSECS_PER_FRAME);
         };
@@ -164,6 +171,7 @@ var AntiCon = new (function() {
         S.fastTime = 0;
         S.lastLaugh = 0;
         S.laughing = false;
+        S.whooshing = false;
 
         this.sprites = [];
         this.track = new AC.LevelTrack();
@@ -188,6 +196,7 @@ var AntiCon = new (function() {
 
             // WEAPON PHYSICS
             var weaponPos = st.weaponPos;
+            var startWeaponPos = weaponPos;
             var weaponMomentum = st.weaponMomentum;
             var tensorPos = st.tensorPos;
             var tensorMomentum = st.tensorMomentum
@@ -277,15 +286,26 @@ var AntiCon = new (function() {
             // Track weapon momentum, for laughing purposes.
             if (weaponMomentum.length >= ACK.LAUGH_SPEED) {
                 st.fastTime += delta;
+
                 if (st.fastTime >= ACK.LAUGH_MIN_TIME &&
                     (st.lastLaugh == 0
                      || st.fastTime - st.lastLaugh >= ACK.LAUGH_WAIT)) {
                     st.laughing = true;
                     st.lastLaugh = st.fastTime;
                 }
+
+                if (startWeaponPos.y < st.playerPos.y
+                         && weaponPos.y < st.playerPos.y
+                         && ((weaponPos.x < st.playerPos.x)
+                             != (startWeaponPos.x < st.playerPos.x))) {
+                    // We just passed above the player going reasonably
+                    // fast. Go "whoosh".
+                    st.whooshing = true;
+                }
             }
             else {
                 st.laughing = false;
+                st.whooshing = false;
                 st.fastTime = 0;
                 st.lastLaugh = 0;
             }
@@ -503,7 +523,7 @@ var AntiCon = new (function() {
         K.TENSOR_FRICTION = 24; // pixels per second^2.
         K.MIN_WEAPON_SPEED = 400;
 
-        K.LAUGH_SPEED = K.MIN_WEAPON_SPEED;
+        K.LAUGH_SPEED = K.MAX_WEAPON_MOMENTUM * 3/4;
         K.LAUGH_MIN_TIME = 1500;
         K.LAUGH_WAIT = 5000;
 
