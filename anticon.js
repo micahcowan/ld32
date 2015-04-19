@@ -879,13 +879,13 @@ var AntiCon = new (function() {
         // EVENTS
         this.events = [
             [2000, 6, this.txfmA, AC.Enemy,
-             new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 8000]
+             new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 12000]
           , [1000, 20, this.txfmA, AC.Enemy,
-             new V(ACK.WIDTH / 3, 0), new V(0, 100), new V(-8, 0), 5000]
+             new V(ACK.WIDTH / 3, 0), new V(0, 100), new V(-8, 0), 8000]
           , [1000, 1, this.txfmA, AC.BurstEnemy,
-             new V(ACK.WIDTH, ACK.HEIGHT / 4), new V(-40, 0), new V(0, 0), 2500]
+             new V(ACK.WIDTH, ACK.HEIGHT / 4), new V(-40, 0), new V(0, 0), 3500]
           , [2000, 6, this.txfmA, AC.Enemy,
-             new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 8000]
+             new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 12000]
         ];
 
         this.lastEventTime = 0;
@@ -903,8 +903,7 @@ var AntiCon = new (function() {
             }
         };
 
-        // this.eventIdx = 0;
-        this.eventIdx = 2;
+        this.eventIdx = 0;
         this.nextEvent = this.events[this.eventIdx].slice();
         this.advanceEvent = function() {
             var ev = this.nextEvent.slice();
