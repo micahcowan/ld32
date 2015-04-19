@@ -60,8 +60,16 @@ var AntiCon = new (function() {
             scr.beginPath();
             // simple line, for now
             scr.moveTo(st.playerPos.x, st.playerPos.y)
+            scr.lineTo(st.tensorPos.x, st.tensorPos.y);
             scr.lineTo(st.weaponPos.x, st.weaponPos.y);
             scr.lineWidth = 1.5;
+            scr.strokeStyle = 'silver';
+            scr.stroke();
+            scr.beginPath();
+            scr.moveTo(st.playerPos.x, st.playerPos.y)
+            scr.quadraticCurveTo(st.tensorPos.x, st.tensorPos.y,
+                                 st.weaponPos.x, st.weaponPos.y);
+            scr.lineWidth = 4;
             scr.strokeStyle = 'black';
             scr.stroke();
 
@@ -128,6 +136,9 @@ var AntiCon = new (function() {
         S.mousePos  = startPos;
         S.playerPos = startPos;
         S.weaponPos = P.move(startPos, ACK.WEAPON_OFFSET);
+        S.tensorPos = P.move(startPos,
+                             V.scaleBy(ACK.WEAPON_OFFSET, ACK.TENSOR));
+        S.tensorMomentum = new V(0, 0);
         S.weaponMomentum = new V(0, 0);
 
         this.sprites = [];
@@ -154,6 +165,8 @@ var AntiCon = new (function() {
             // WEAPON PHYSICS
             var weaponPos = st.weaponPos;
             var weaponMomentum = st.weaponMomentum;
+            var tensorPos = st.tensorPos;
+            var tensorMomentum = st.tensorMomentum
 
             // First, apply any existing momentum.
             if (weaponMomentum.isNonZero) {
@@ -171,12 +184,38 @@ var AntiCon = new (function() {
                                                 -ACK.WEAPON_FRICTION);
                 }
             }
+            if (tensorMomentum.isNonZero) {
+                var tensorMomentumThisFrame = V.scaleBy(tensorMomentum,
+                                                        delta / 1000);
+                tensorPos = V.move(tensorPos, tensorMomentumThisFrame);
+
+                // Apply friction.
+                var friction = ACK.TENSOR_FRICTION * delta/1000
+                if (tensorMomentum.length <= ACK.TENSOR_FRICTION) {
+                    tensorMomentum = new V(0, 0);
+                }
+                else {
+                    tensorMomentum = V.lengthen(tensorMomentum, -ACK.TENSOR_FRICTION);
+                }
+            }
 
             // Enforce the tether, and translate that into new momentum.
-            var distVec = P.diff(st.playerPos, weaponPos);
-            if (distVec.length > ACK.TETHER_STRETCH_LENGTH) {
+            var distVec = P.diff(st.playerPos, tensorPos);
+            if (distVec.length > ACK.TENSOR_TETHER_STRETCH_LENGTH) {
                 distVec = V.scaleTo(distVec,
-                                    distVec.length - ACK.TETHER_STRETCH_LENGTH);
+                                    distVec.length - ACK.TENSOR_TETHER_STRETCH_LENGTH);
+                tensorPos = P.move(tensorPos, distVec);
+                var distVecPerSec = V.scaleBy(distVec, 1000 / delta);
+                tensorMomentum = V.move(tensorMomentum, distVecPerSec);
+                if (tensorMomentum.length > ACK.MAX_WEAPON_MOMENTUM) {
+                    tensorMomentum = V.scaleTo(tensorMomentum,
+                                               ACK.MAX_WEAPON_MOMENTUM);
+                }
+            }
+            distVec = P.diff(tensorPos, weaponPos);
+            if (distVec.length > ACK.WEAPON_TETHER_STRETCH_LENGTH) {
+                distVec = V.scaleTo(distVec,
+                                    distVec.length - ACK.WEAPON_TETHER_STRETCH_LENGTH);
                 weaponPos = P.move(weaponPos, distVec);
                 var distVecPerSec = V.scaleBy(distVec, 1000 / delta);
                 weaponMomentum = V.move(weaponMomentum, distVecPerSec);
@@ -186,6 +225,13 @@ var AntiCon = new (function() {
                 }
             }
             // Is the tether stretched? Adjust momentum as needed.
+            distVec = P.diff(st.playerPos, tensorPos);
+            if (distVec.length > ACK.TENSOR_TETHER_LENGTH) {
+                var tetherMomentum = V.lengthen(distVec, -ACK.TENSOR_TETHER_LENGTH);
+                tetherMomentum = V.scaleBy(tetherMomentum,
+                                           ACK.TETHER_SNAP * 1000 / delta);
+                tensorMomentum = V.move(tensorMomentum, tetherMomentum);
+            }
             distVec = P.diff(st.playerPos, weaponPos);
             if (distVec.length > ACK.TETHER_LENGTH) {
                 var tetherMomentum = V.lengthen(distVec, -ACK.TETHER_LENGTH);
@@ -195,6 +241,8 @@ var AntiCon = new (function() {
             }
             // Save the new values back into state object.
             st.weaponPos = weaponPos;
+            st.tensorPos = tensorPos;
+            st.tensorMomentum = tensorMomentum;
             st.weaponMomentum = weaponMomentum;
 
             this.track.run(st);
@@ -392,8 +440,16 @@ var AntiCon = new (function() {
         K.TETHER_STRETCH = 0.85; // fraction of tether length
         K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
         K.TETHER_SNAP = 0.1;
+        K.TENSOR = 0.67; // fraction of tether length where tensor lives
+        K.TENSOR_TETHER_LENGTH = K.TETHER_LENGTH * K.TENSOR;
+        K.TENSOR_TETHER_STRETCH_LENGTH = K.TENSOR_TETHER_LENGTH
+            * (1 + K.TETHER_STRETCH);
+        K.WEAPON_TETHER_LENGTH = K.TETHER_LENGTH - K.TENSOR_TETHER_LENGTH;
+        K.WEAPON_TETHER_STRETCH_LENGTH = K.WEAPON_TETHER_LENGTH
+            * (1 + K.TETHER_STRETCH);
         K.MAX_WEAPON_MOMENTUM = 800; // pixels per second.
         K.WEAPON_FRICTION = 27; // pixels per second^2.
+        K.TENSOR_FRICTION = 54; // pixels per second^2.
         K.MIN_WEAPON_SPEED = 400;
 
         K.SCORE_LINGER = 1000;
