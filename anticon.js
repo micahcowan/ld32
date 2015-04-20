@@ -3,7 +3,6 @@
 /*
     TODO:
 
-    - baddies in from side with bullets burst
     - baddies loop around center
 */
 
@@ -104,8 +103,8 @@ var AntiCon = new (function() {
         K.WEAPON_OFFSET = new V(-50, 70);
         K.WEAPON_MOMENTUM = new V(-400, -400);
 
-        K.TETHER_LENGTH = 80;
-        K.TETHER_STRETCH = 0.65; // fraction of tether length
+        K.TETHER_LENGTH = 60;
+        K.TETHER_STRETCH = 1.40; // fraction of tether length
         K.TETHER_STRETCH_LENGTH = K.TETHER_LENGTH * (1 + K.TETHER_STRETCH);
         K.TETHER_SNAP = 0.1;
         K.TENSOR = 0.67; // fraction of tether length where tensor lives
@@ -879,8 +878,8 @@ var AntiCon = new (function() {
                 return ev;
         };
         this.txfmB = function(ev) {
-                ev[4] = new V(ev[4].x, ACK.HEIGHT - ev[4].y);
-                ev[6] = new V(ev[6].x, -ev[6].y);
+                ev[4] = new V(ACK.WIDTH - ev[4].x, ACK.HEIGHT - ev[4].y);
+                ev[5] = new V(-ev[5].x, -ev[5].y);
                 return ev;
         };
 
@@ -888,10 +887,10 @@ var AntiCon = new (function() {
         this.events = [
             [2000, 6, this.txfmA, AC.Enemy,
              new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 12000]
-          , [1000, 20, this.txfmB, AC.Enemy,
-             new V(0, ACK.HEIGHT / 4), new V(100, 0), new V(0, -8), 8000]
-          , [1000, 1, null, AC.BurstEnemy,
-             new V(ACK.WIDTH, ACK.HEIGHT / 4), new V(-40, 0), new V(0, 0), 3500]
+          , [1000, 20, this.txfmA, AC.Enemy,
+             new V(ACK.WIDTH / 3, ACK.HEIGHT), new V(0, -100), new V(-8, 0), 8000]
+          , [0, 2, this.txfmB, AC.BurstEnemy,
+             new V(ACK.WIDTH, ACK.HEIGHT / 4), new V(-40, 0), new V(0, 0), 3000]
           , [2000, 6, this.txfmA, AC.Enemy,
              new V(ACK.WIDTH / 4, 0), new V(0, 60), new V(0, 0), 12000]
         ];
